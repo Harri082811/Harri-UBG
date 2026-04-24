@@ -283,7 +283,11 @@
           </div>
         </header>
         <div class="modal-body">
-          <iframe id="modal-frame" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+          <div class="modal-loading" id="modal-loading" hidden>
+            <div class="spinner"></div>
+            <span>loading…</span>
+          </div>
+          <iframe id="modal-frame" allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write; gamepad" allowfullscreen referrerpolicy="no-referrer"></iframe>
         </div>
       </div>
     </div>

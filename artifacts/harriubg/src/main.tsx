@@ -172,12 +172,68 @@ MOVIES = MOVIE_LIST;
 
 function buildEmbedUrl(movieId: number, server: string): string {
   switch (server) {
-    case "vidsrc.cc":   return `https://vidsrc.cc/v2/embed/movie/${movieId}?autoPlay=${settings.autoplay}`;
+    case "vidsrc.cc":   return `https://vidsrc.cc/v2/embed/movie/${movieId}`;
     case "vidsrc.xyz":  return `https://vidsrc.xyz/embed/movie?tmdb=${movieId}`;
     case "embed.su":    return `https://embed.su/embed/movie/${movieId}`;
-    case "vidlink.pro": return `https://vidlink.pro/movie/${movieId}?primaryColor=22d3ee&secondaryColor=a78bfa&iconColor=ffffff&autoplay=${settings.autoplay}`;
+    case "vidlink.pro": return `https://vidlink.pro/movie/${movieId}?primaryColor=22d3ee&secondaryColor=a78bfa&iconColor=ffffff&autoplay=false`;
     case "2embed.cc":   return `https://www.2embed.cc/embed/${movieId}`;
     default:            return `https://vidsrc.cc/v2/embed/movie/${movieId}`;
+  }
+}
+
+/* ----- blob-URL cloaking ----------
+   Wrapping the real iframe inside a blob URL hides the source URL from
+   network-level filters that scan page HTML. The iframe's src appears as
+   `blob:...` instead of revealing the game / streaming provider. */
+
+const activeBlobs = new Set<string>();
+
+function revokeBlobs() {
+  activeBlobs.forEach((u) => URL.revokeObjectURL(u));
+  activeBlobs.clear();
+}
+
+function makeBlobUrl(html: string): string {
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  activeBlobs.add(url);
+  return url;
+}
+
+/** Wrap a third-party URL in a tiny blob page so the iframe src is `blob:...`. */
+function cloakUrl(url: string, title: string): string {
+  const safeUrl = url.replace(/"/g, "&quot;");
+  const safeTitle = escapeHtml(title);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${safeTitle}</title>
+<style>html,body,iframe{margin:0;padding:0;width:100%;height:100%;border:0;background:#000;overflow:hidden}</style>
+</head><body>
+<iframe src="${safeUrl}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write; gamepad" allowfullscreen referrerpolicy="no-referrer"></iframe>
+</body></html>`;
+  return makeBlobUrl(html);
+}
+
+/** Fetch a self-hosted game's HTML, rewrite its <base href> to a working CDN
+    (the original points at a 403'd fork), and serve it via a blob URL so the
+    iframe renders properly with `text/html` instead of jsdelivr's text/plain. */
+async function cloakGameHtml(gameId: number, fallbackUrl: string, title: string): Promise<string> {
+  try {
+    const res = await fetch(fallbackUrl, { cache: "force-cache" });
+    if (!res.ok) throw new Error(`fetch ${fallbackUrl} -> ${res.status}`);
+    let html = await res.text();
+    const goodBase = `${GH_BASE}/${gameId}/`;
+    // Replace any existing <base href="..."> with our own base
+    if (/<base\s[^>]*href=/i.test(html)) {
+      html = html.replace(/<base\s[^>]*href=["'][^"']*["'][^>]*>/i, `<base href="${goodBase}">`);
+    } else {
+      html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${goodBase}">`);
+    }
+    // Inject a tiny title for the cloaked tab
+    html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)}</title>`);
+    return makeBlobUrl(html);
+  } catch (err) {
+    console.error(err);
+    // last-ditch fallback: load the URL directly (may still show as text)
+    return cloakUrl(fallbackUrl, title);
   }
 }
 
@@ -500,10 +556,18 @@ function openModal() {
   const m = document.getElementById("modal")!;
   m.hidden = false;
   document.body.style.overflow = "hidden";
+  setLoading(true);
 }
+
+function setLoading(on: boolean) {
+  const overlay = document.getElementById("modal-loading")!;
+  overlay.hidden = !on;
+}
+
 function closeModal() {
   const m = document.getElementById("modal")!;
   const f = document.getElementById("modal-frame") as HTMLIFrameElement;
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   f.src = "about:blank";
   m.hidden = true;
   document.body.style.overflow = "";
@@ -511,33 +575,50 @@ function closeModal() {
   const sr = document.getElementById("server-row")!;
   sr.hidden = true;
   sr.innerHTML = "";
+  setLoading(false);
+  // free memory
+  setTimeout(revokeBlobs, 500);
 }
 
-function openGame(g: Game) {
-  if (settings.aboutBlank) {
-    openInAboutBlank(g.url, g.name);
-    return;
-  }
+async function openGame(g: Game) {
   document.getElementById("modal-kind")!.textContent = "Game";
   document.getElementById("modal-title")!.textContent = g.name;
-  const f = document.getElementById("modal-frame") as HTMLIFrameElement;
-  f.src = g.url;
   (document.getElementById("server-row") as HTMLElement).hidden = true;
   activeMovie = null;
   openModal();
+
+  const f = document.getElementById("modal-frame") as HTMLIFrameElement;
+  f.src = "about:blank";
+  // Fetch + rewrite + serve through a blob URL so the iframe renders properly
+  const blobUrl = await cloakGameHtml(g.id, g.url, g.name);
+
+  if (settings.aboutBlank) {
+    openInAboutBlank(blobUrl, g.name);
+    closeModal();
+    return;
+  }
+
+  f.onload = () => setLoading(false);
+  f.src = blobUrl;
 }
 
 function openMovie(m: Movie) {
-  const url = buildEmbedUrl(m.id, settings.server);
-  if (settings.aboutBlank) {
-    openInAboutBlank(url, m.title);
-    return;
-  }
   activeMovie = m;
   document.getElementById("modal-kind")!.textContent = `Movie · ${m.year}`;
   document.getElementById("modal-title")!.textContent = m.title;
+
+  const realUrl = buildEmbedUrl(m.id, settings.server);
+  const blobUrl = cloakUrl(realUrl, m.title);
+
+  if (settings.aboutBlank) {
+    openInAboutBlank(blobUrl, m.title);
+    return;
+  }
+
+  openModal();
   const f = document.getElementById("modal-frame") as HTMLIFrameElement;
-  f.src = url;
+  f.onload = () => setLoading(false);
+  f.src = blobUrl;
 
   // Build server switcher
   const sr = document.getElementById("server-row")!;
@@ -549,12 +630,13 @@ function openMovie(m: Movie) {
     b.addEventListener("click", () => {
       sr.querySelectorAll(".server-btn").forEach((el) => el.classList.remove("active"));
       b.classList.add("active");
-      f.src = buildEmbedUrl(m.id, s.id);
+      setLoading(true);
+      const newUrl = buildEmbedUrl(m.id, s.id);
+      f.src = cloakUrl(newUrl, m.title);
     });
     sr.appendChild(b);
   });
   sr.hidden = false;
-  openModal();
 }
 
 function openInAboutBlank(url: string, title: string) {
@@ -565,7 +647,7 @@ function openInAboutBlank(url: string, title: string) {
       return;
     }
     win.document.title = title;
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>html,body,iframe{margin:0;padding:0;width:100%;height:100%;border:0;background:#000;overflow:hidden}</style></head><body><iframe src="${escapeAttr(url)}" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe></body></html>`;
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>html,body,iframe{margin:0;padding:0;width:100%;height:100%;border:0;background:#000;overflow:hidden}</style></head><body><iframe src="${escapeAttr(url)}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write; gamepad" allowfullscreen referrerpolicy="no-referrer"></iframe></body></html>`;
     win.document.open();
     win.document.write(html);
     win.document.close();
@@ -574,22 +656,40 @@ function openInAboutBlank(url: string, title: string) {
   }
 }
 
+async function goFullscreen() {
+  const shell = document.querySelector(".modal-shell") as HTMLElement;
+  const frame = document.getElementById("modal-frame") as HTMLIFrameElement;
+  if (document.fullscreenElement) {
+    try { await document.exitFullscreen(); } catch {}
+    return;
+  }
+  // Prefer the iframe so games / players can use the full screen, but fall
+  // back to the modal shell if the iframe rejects fullscreen.
+  try {
+    await (frame.requestFullscreen?.() ?? Promise.reject());
+    return;
+  } catch {}
+  try {
+    await shell?.requestFullscreen?.();
+  } catch {
+    showToast("Fullscreen isn't available.");
+  }
+}
+
 function initModal() {
   document.querySelectorAll("[data-close]").forEach((el) => {
     el.addEventListener("click", closeModal);
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeModal();
+    if (e.key === "Escape" && !document.fullscreenElement) closeModal();
   });
-  document.getElementById("modal-fullscreen")!.addEventListener("click", () => {
-    const shell = document.querySelector(".modal-shell") as HTMLElement;
-    if (!shell) return;
-    if (document.fullscreenElement) document.exitFullscreen();
-    else shell.requestFullscreen?.();
-  });
+  document.getElementById("modal-fullscreen")!.addEventListener("click", goFullscreen);
   document.getElementById("modal-newtab")!.addEventListener("click", () => {
     const f = document.getElementById("modal-frame") as HTMLIFrameElement;
-    if (f.src) window.open(f.src, "_blank", "noopener");
+    if (!f.src || f.src === "about:blank") return;
+    // For blob URLs, opening in a new tab loses context; pop the wrapper
+    // page in a new window instead.
+    window.open(f.src, "_blank", "noopener");
   });
 }
 
