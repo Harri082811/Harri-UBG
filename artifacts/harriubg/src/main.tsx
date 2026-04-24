@@ -354,12 +354,10 @@ type Star = { x: number; y: number; vx: number; vy: number; r: number };
 const STAR_DENSITY = 160;
 const STAR_SPEED = 1.0;     // multiplier
 const LINK_DIST = 130;
-const MOUSE_DIST = 180;
 
 let canvas: HTMLCanvasElement | null = null;
 let ctx: CanvasRenderingContext2D | null = null;
 let stars: Star[] = [];
-const mouse = { x: -9999, y: -9999, active: false };
 let rafId = 0;
 
 function rebuildStars() {
@@ -398,17 +396,6 @@ function tick() {
     if (s.y < 0) s.y += h;
     if (s.y > h) s.y -= h;
 
-    if (mouse.active) {
-      const dx = s.x - mouse.x;
-      const dy = s.y - mouse.y;
-      const d2 = dx * dx + dy * dy;
-      if (d2 < 140 * 140) {
-        const f = (1 - Math.sqrt(d2) / 140) * 0.9;
-        s.x += (dx / Math.sqrt(d2 + 0.01)) * f;
-        s.y += (dy / Math.sqrt(d2 + 0.01)) * f;
-      }
-    }
-
     ctx.beginPath();
     ctx.fillStyle = `rgba(${starColor}, ${0.55 + s.r * 0.25})`;
     ctx.shadowBlur = 6;
@@ -435,23 +422,6 @@ function tick() {
       }
     }
   }
-  if (mouse.active) {
-    for (const s of stars) {
-      const dx = s.x - mouse.x;
-      const dy = s.y - mouse.y;
-      const d = Math.sqrt(dx * dx + dy * dy);
-      if (d < MOUSE_DIST) {
-        const alpha = (1 - d / MOUSE_DIST) * 0.45;
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(${starColor}, ${alpha})`;
-        ctx.lineWidth = 0.8;
-        ctx.moveTo(s.x, s.y);
-        ctx.lineTo(mouse.x, mouse.y);
-        ctx.stroke();
-      }
-    }
-  }
-
   rafId = requestAnimationFrame(tick);
 }
 
@@ -468,14 +438,6 @@ function initConstellation() {
   rafId = requestAnimationFrame(tick);
 
   window.addEventListener("resize", rebuildStars);
-  window.addEventListener("pointermove", (e) => {
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
-    mouse.active = true;
-  });
-  window.addEventListener("pointerleave", () => {
-    mouse.active = false;
-  });
 }
 
 /* ============================================================
