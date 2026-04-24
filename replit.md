@@ -29,6 +29,19 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 ## Artifacts
 
 - **harriubg** (`artifacts/harriubg`) — vanilla HTML/CSS/JS unblocked games and movies hub
-  served at `/`. Loads game manifest from `harriwalk0/assets` GitHub repo via jsdelivr,
-  uses cineby-style movie embed servers, and renders an interactive starfield/constellation
-  background. Single-page app with Home, Games, Movies, and Settings tabs.
+  served at `/`. Single-page app with Home / Games / Movies / Settings tabs and an
+  always-on constellation background.
+  - **Games (~685)**: manifest from `harriwalk0/assets/zones.json`. Game HTML loaded from
+    `raw.githubusercontent.com/gn-math/html` (single-file games, all 685 entries) and
+    wrapped in a `text/html` Blob URL for cloaking. A small `MULTI_FILE_IDS` set prefers
+    the richer multi-file builds in `harriwalk0/assets/<id>/index.html` for ~38 games
+    (Unity / Flash titles). Covers from `raw.githubusercontent.com/gn-math/covers`.
+  - **Movies (36)**: curated TMDB IDs. Posters fetched from TMDB v3 API at boot
+    (key in `main.tsx`) and cached in `localStorage` under `harriubg.posters.v1`.
+    Streaming via cineby-style provider switcher (vidsrc.cc, vidsrc.xyz, embed.su,
+    vidlink.pro, 2embed.cc), each wrapped in a Blob URL.
+  - **Settings**: theme (cosmic / aurora / sunset / midnight), tab cloak (title + icon),
+    open-in-about:blank, autoplay toggle, default streaming server. Constellation
+    customization removed — always on at sensible defaults.
+  - All cards use `<img onerror>` to fall back to a deterministic gradient placeholder
+    so missing covers/posters never look broken.

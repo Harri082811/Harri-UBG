@@ -11,6 +11,7 @@ type Game = {
   name: string;
   cover: string;
   url: string;
+  multiFile: boolean;
   author?: string;
   authorLink?: string;
 };
@@ -20,15 +21,11 @@ type Movie = {
   title: string;
   year: number;
   genre: string;
+  poster?: string;
 };
 
 type Settings = {
   theme: "cosmic" | "aurora" | "sunset" | "midnight";
-  showStars: boolean;
-  showLines: boolean;
-  reactToMouse: boolean;
-  density: number;
-  speed: number;
   cloakTitle: string;
   cloakIcon: string;
   aboutBlank: boolean;
@@ -38,11 +35,6 @@ type Settings = {
 
 const DEFAULT_SETTINGS: Settings = {
   theme: "cosmic",
-  showStars: true,
-  showLines: true,
-  reactToMouse: true,
-  density: 160,
-  speed: 40,
   cloakTitle: "",
   cloakIcon: "",
   aboutBlank: false,
@@ -50,7 +42,8 @@ const DEFAULT_SETTINGS: Settings = {
   server: "vidsrc.cc",
 };
 
-const STORAGE_KEY = "harriubg.settings.v1";
+const STORAGE_KEY = "harriubg.settings.v2";
+const POSTERS_CACHE_KEY = "harriubg.posters.v1";
 
 /* ----- settings persistence ---------- */
 function loadSettings(): Settings {
@@ -71,20 +64,21 @@ function saveSettings(s: Settings) {
 let settings = loadSettings();
 
 /* ============================================================
-   GAMES — fetched from harriwalk0/assets repo
+   GAMES — fetched from gn-math (covers + html) with multi-file
+   fallback to harriwalk0/assets for Unity/Flash games.
    ============================================================ */
 
-// Folder IDs that contain a full game (cover.png + index.html) in the repo.
-const GAME_FOLDER_IDS = new Set<number>([
-  113, 116, 117, 118, 120, 121, 122, 123, 124, 129, 165, 174, 175, 176, 178,
-  184, 186, 187, 197, 198, 199, 200, 203, 255, 256, 258, 260, 286, 294, 296,
-  302, 306, 307, 308, 309, 310, 311, 315, 317, 318, 330, 346, 347, 351, 352,
-  434, 441, 442, 447,
+// IDs that have a richer multi-file build in harriwalk0/assets/<id>/index.html
+const MULTI_FILE_IDS = new Set<number>([
+  113, 116, 118, 120, 121, 122, 123, 124, 129, 165, 198, 199, 200, 255, 256,
+  258, 260, 294, 296, 302, 306, 307, 308, 309, 310, 311, 315, 317, 318, 330,
+  346, 347, 352, 434, 441, 442, 447,
 ]);
 
-const GH_BASE = "https://cdn.jsdelivr.net/gh/harriwalk0/assets@main";
-const GH_RAW  = "https://raw.githubusercontent.com/harriwalk0/assets/main";
-const ZONES_URL = `${GH_RAW}/zones.json`;
+const HARRI_BASE   = "https://cdn.jsdelivr.net/gh/harriwalk0/assets@main";
+const COVERS_BASE  = "https://raw.githubusercontent.com/gn-math/covers/main";
+const GAMES_BASE   = "https://raw.githubusercontent.com/gn-math/html/main";
+const ZONES_URL    = "https://raw.githubusercontent.com/harriwalk0/assets/main/zones.json";
 
 let GAMES: Game[] = [];
 let MOVIES: Movie[] = [];
@@ -103,26 +97,34 @@ async function loadGames(): Promise<void> {
     }>;
 
     GAMES = zones
-      .filter((g) => GAME_FOLDER_IDS.has(g.id))
-      .map((g) => ({
-        id: g.id,
-        name: g.name,
-        // The repo stores covers/games inside per-id folders.
-        cover: `${GH_BASE}/${g.id}/cover.png`,
-        url:   `${GH_BASE}/${g.id}/index.html`,
-        author: g.author,
-        authorLink: g.authorLink,
-      }))
+      .filter((g) => g.id >= 0 && !/^\[/.test(g.name))
+      .map((g) => {
+        const isMulti = MULTI_FILE_IDS.has(g.id);
+        // single-file game URLs come from {HTML_URL}/<filename>.html
+        const fileMatch = g.url.match(/\{HTML_URL\}\/(.+)$/);
+        const fname = fileMatch ? fileMatch[1] : `${g.id}.html`;
+        return {
+          id: g.id,
+          name: g.name,
+          cover: `${COVERS_BASE}/${g.id}.png`,
+          url: isMulti
+            ? `${HARRI_BASE}/${g.id}/index.html`
+            : `${GAMES_BASE}/${fname}`,
+          multiFile: isMulti,
+          author: g.author,
+          authorLink: g.authorLink,
+        };
+      })
       .sort((a, b) => a.name.localeCompare(b.name));
   } catch (err) {
     console.error(err);
-    showToast("Couldn't load games from GitHub. Check your connection.");
+    showToast("Couldn't load games. Check your connection.");
     GAMES = [];
   }
 }
 
 /* ============================================================
-   MOVIES — curated list, played via configurable embed servers
+   MOVIES — curated list, real posters fetched from TMDB at boot
    ============================================================ */
 
 const MOVIE_LIST: Movie[] = [
@@ -165,6 +167,43 @@ const MOVIE_LIST: Movie[] = [
 ];
 
 MOVIES = MOVIE_LIST;
+
+const TMDB_KEY = "8265bd1679663a7ea12ac168da84d2e8";
+const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
+
+function loadPostersCache(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(POSTERS_CACHE_KEY) || "{}"); }
+  catch { return {}; }
+}
+function savePostersCache(c: Record<string, string>) {
+  try { localStorage.setItem(POSTERS_CACHE_KEY, JSON.stringify(c)); } catch {}
+}
+
+async function loadPosters(): Promise<void> {
+  const cache = loadPostersCache();
+  // hydrate immediately from cache
+  for (const m of MOVIES) {
+    if (cache[m.id]) m.poster = `${TMDB_IMG}${cache[m.id]}`;
+  }
+  // fetch missing posters in parallel (no rate-limit issues for ~36 calls)
+  const missing = MOVIES.filter((m) => !cache[m.id]);
+  if (missing.length === 0) return;
+
+  await Promise.all(
+    missing.map(async (m) => {
+      try {
+        const r = await fetch(`https://api.themoviedb.org/3/movie/${m.id}?api_key=${TMDB_KEY}`);
+        if (!r.ok) return;
+        const d = await r.json();
+        if (d.poster_path) {
+          cache[m.id] = d.poster_path;
+          m.poster = `${TMDB_IMG}${d.poster_path}`;
+        }
+      } catch { /* ignore */ }
+    })
+  );
+  savePostersCache(cache);
+}
 
 /* ============================================================
    Embed URL builders (cineby uses similar providers under the hood)
@@ -212,28 +251,29 @@ function cloakUrl(url: string, title: string): string {
   return makeBlobUrl(html);
 }
 
-/** Fetch a self-hosted game's HTML, rewrite its <base href> to a working CDN
-    (the original points at a 403'd fork), and serve it via a blob URL so the
-    iframe renders properly with `text/html` instead of jsdelivr's text/plain. */
-async function cloakGameHtml(gameId: number, fallbackUrl: string, title: string): Promise<string> {
+/** Fetch a game's HTML, normalize its <base href>, and serve via blob URL. */
+async function cloakGameHtml(g: Game): Promise<string> {
   try {
-    const res = await fetch(fallbackUrl, { cache: "force-cache" });
-    if (!res.ok) throw new Error(`fetch ${fallbackUrl} -> ${res.status}`);
+    const res = await fetch(g.url, { cache: "force-cache" });
+    if (!res.ok) throw new Error(`fetch ${g.url} -> ${res.status}`);
     let html = await res.text();
-    const goodBase = `${GH_BASE}/${gameId}/`;
-    // Replace any existing <base href="..."> with our own base
-    if (/<base\s[^>]*href=/i.test(html)) {
-      html = html.replace(/<base\s[^>]*href=["'][^"']*["'][^>]*>/i, `<base href="${goodBase}">`);
-    } else {
-      html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${goodBase}">`);
+    // For multi-file games hosted on harriwalk0/assets, the embedded base href
+    // points at a 403'd fork — rewrite it to the working CDN.
+    if (g.multiFile) {
+      const goodBase = `${HARRI_BASE}/${g.id}/`;
+      if (/<base\s[^>]*href=/i.test(html)) {
+        html = html.replace(/<base\s[^>]*href=["'][^"']*["'][^>]*>/i, `<base href="${goodBase}">`);
+      } else {
+        html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${goodBase}">`);
+      }
     }
-    // Inject a tiny title for the cloaked tab
-    html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)}</title>`);
+    // Single-file games already have a working <base href> baked in (e.g.
+    // bubbls/youtube-playables, freebuisness/assets, etc).
+    html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(g.name)}</title>`);
     return makeBlobUrl(html);
   } catch (err) {
     console.error(err);
-    // last-ditch fallback: load the URL directly (may still show as text)
-    return cloakUrl(fallbackUrl, title);
+    return cloakUrl(g.url, g.name);
   }
 }
 
@@ -246,10 +286,15 @@ const SERVERS: Array<{ id: string; label: string }> = [
 ];
 
 /* ============================================================
-   Constellation background
+   Constellation background — always on, sensible defaults
    ============================================================ */
 
 type Star = { x: number; y: number; vx: number; vy: number; r: number };
+
+const STAR_DENSITY = 160;
+const STAR_SPEED = 1.0;     // multiplier
+const LINK_DIST = 130;
+const MOUSE_DIST = 180;
 
 let canvas: HTMLCanvasElement | null = null;
 let ctx: CanvasRenderingContext2D | null = null;
@@ -268,8 +313,7 @@ function rebuildStars() {
   canvas.style.height = h + "px";
   ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  const count = settings.showStars ? settings.density : 0;
-  stars = new Array(count).fill(0).map(() => ({
+  stars = new Array(STAR_DENSITY).fill(0).map(() => ({
     x: Math.random() * w,
     y: Math.random() * h,
     vx: (Math.random() - 0.5) * 0.6,
@@ -284,20 +328,17 @@ function tick() {
   const h = window.innerHeight;
   ctx.clearRect(0, 0, w, h);
 
-  const speed = settings.speed / 40; // 0..2.5
-  const linkDist = 130;
   const starColor = getCssVar("--star") || "200, 220, 255";
 
-  // draw stars
   for (const s of stars) {
-    s.x += s.vx * speed;
-    s.y += s.vy * speed;
+    s.x += s.vx * STAR_SPEED;
+    s.y += s.vy * STAR_SPEED;
     if (s.x < 0) s.x += w;
     if (s.x > w) s.x -= w;
     if (s.y < 0) s.y += h;
     if (s.y > h) s.y -= h;
 
-    if (mouse.active && settings.reactToMouse) {
+    if (mouse.active) {
       const dx = s.x - mouse.x;
       const dy = s.y - mouse.y;
       const d2 = dx * dx + dy * dy;
@@ -317,40 +358,36 @@ function tick() {
   }
   ctx.shadowBlur = 0;
 
-  // draw lines
-  if (settings.showLines && stars.length > 0) {
-    for (let i = 0; i < stars.length; i++) {
-      for (let j = i + 1; j < stars.length; j++) {
-        const a = stars[i], b = stars[j];
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
-        const d = Math.sqrt(dx * dx + dy * dy);
-        if (d < linkDist) {
-          const alpha = (1 - d / linkDist) * 0.18;
-          ctx.beginPath();
-          ctx.strokeStyle = `rgba(${starColor}, ${alpha})`;
-          ctx.lineWidth = 0.6;
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.stroke();
-        }
+  for (let i = 0; i < stars.length; i++) {
+    for (let j = i + 1; j < stars.length; j++) {
+      const a = stars[i], b = stars[j];
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < LINK_DIST) {
+        const alpha = (1 - d / LINK_DIST) * 0.18;
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(${starColor}, ${alpha})`;
+        ctx.lineWidth = 0.6;
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
       }
     }
-    // mouse-aware lines
-    if (mouse.active && settings.reactToMouse) {
-      for (const s of stars) {
-        const dx = s.x - mouse.x;
-        const dy = s.y - mouse.y;
-        const d = Math.sqrt(dx * dx + dy * dy);
-        if (d < 180) {
-          const alpha = (1 - d / 180) * 0.45;
-          ctx.beginPath();
-          ctx.strokeStyle = `rgba(${starColor}, ${alpha})`;
-          ctx.lineWidth = 0.8;
-          ctx.moveTo(s.x, s.y);
-          ctx.lineTo(mouse.x, mouse.y);
-          ctx.stroke();
-        }
+  }
+  if (mouse.active) {
+    for (const s of stars) {
+      const dx = s.x - mouse.x;
+      const dy = s.y - mouse.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < MOUSE_DIST) {
+        const alpha = (1 - d / MOUSE_DIST) * 0.45;
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(${starColor}, ${alpha})`;
+        ctx.lineWidth = 0.8;
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(mouse.x, mouse.y);
+        ctx.stroke();
       }
     }
   }
@@ -412,28 +449,10 @@ function initTabs() {
 }
 
 /* ============================================================
-   Card rendering
+   Card rendering — cover image with gradient fallback on error
    ============================================================ */
 
-function gameCard(g: Game): HTMLElement {
-  const tile = document.createElement("button");
-  tile.className = "card-tile";
-  tile.type = "button";
-  tile.innerHTML = `
-    <div class="card-cover" style="background-image:url('${escapeAttr(g.cover)}')"></div>
-    <div class="play-overlay"><div class="play-icon">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-    </div></div>
-    <div class="card-meta">
-      <div class="card-title">${escapeHtml(g.name)}</div>
-      <div class="card-sub">${escapeHtml(g.author || "Unknown studio")}</div>
-    </div>`;
-  tile.addEventListener("click", () => openGame(g));
-  return tile;
-}
-
 function gradientFor(seed: string): string {
-  // deterministic gradient based on string hash
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   const hue1 = h % 360;
@@ -441,24 +460,70 @@ function gradientFor(seed: string): string {
   return `linear-gradient(135deg, hsl(${hue1} 70% 55%), hsl(${hue2} 75% 45%))`;
 }
 
-function movieCard(m: Movie): HTMLElement {
+function buildCard(opts: {
+  title: string;
+  sub: string;
+  cover?: string;
+  onClick: () => void;
+}): HTMLElement {
   const tile = document.createElement("button");
   tile.className = "card-tile";
   tile.type = "button";
-  const grad = gradientFor(m.title);
-  tile.innerHTML = `
-    <div class="card-cover placeholder" style="background:${grad}">
-      <span>${escapeHtml(m.title)}</span>
-    </div>
-    <div class="play-overlay"><div class="play-icon">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-    </div></div>
-    <div class="card-meta">
-      <div class="card-title">${escapeHtml(m.title)}</div>
-      <div class="card-sub">${m.year} · ${escapeHtml(m.genre)}</div>
-    </div>`;
-  tile.addEventListener("click", () => openMovie(m));
+
+  const grad = gradientFor(opts.title);
+  const safeTitle = escapeHtml(opts.title);
+  const safeSub = escapeHtml(opts.sub);
+
+  if (opts.cover) {
+    tile.innerHTML = `
+      <div class="card-cover" data-fallback="${escapeAttr(grad)}" data-name="${safeTitle}">
+        <img src="${escapeAttr(opts.cover)}" alt="${safeTitle}" loading="lazy" />
+      </div>
+      <div class="play-overlay"><div class="play-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </div></div>
+      <div class="card-meta">
+        <div class="card-title">${safeTitle}</div>
+        <div class="card-sub">${safeSub}</div>
+      </div>`;
+    const img = tile.querySelector("img")!;
+    const cover = tile.querySelector(".card-cover") as HTMLElement;
+    img.addEventListener("error", () => {
+      cover.classList.add("placeholder");
+      cover.style.background = grad;
+      cover.innerHTML = `<span>${safeTitle}</span>`;
+    });
+  } else {
+    tile.innerHTML = `
+      <div class="card-cover placeholder" style="background:${grad}"><span>${safeTitle}</span></div>
+      <div class="play-overlay"><div class="play-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </div></div>
+      <div class="card-meta">
+        <div class="card-title">${safeTitle}</div>
+        <div class="card-sub">${safeSub}</div>
+      </div>`;
+  }
+  tile.addEventListener("click", opts.onClick);
   return tile;
+}
+
+function gameCard(g: Game): HTMLElement {
+  return buildCard({
+    title: g.name,
+    sub: g.author || "Unknown studio",
+    cover: g.cover,
+    onClick: () => openGame(g),
+  });
+}
+
+function movieCard(m: Movie): HTMLElement {
+  return buildCard({
+    title: m.title,
+    sub: `${m.year} · ${m.genre}`,
+    cover: m.poster,
+    onClick: () => openMovie(m),
+  });
 }
 
 function escapeHtml(s: string): string {
@@ -487,8 +552,7 @@ function renderFeatured() {
       fGames.appendChild(sk);
     }
   } else {
-    const picks = pickRandom(GAMES, 12);
-    picks.forEach((g) => fGames.appendChild(gameCard(g)));
+    pickRandom(GAMES, 12).forEach((g) => fGames.appendChild(gameCard(g)));
   }
 
   fMovies.innerHTML = "";
@@ -576,7 +640,6 @@ function closeModal() {
   sr.hidden = true;
   sr.innerHTML = "";
   setLoading(false);
-  // free memory
   setTimeout(revokeBlobs, 500);
 }
 
@@ -589,8 +652,7 @@ async function openGame(g: Game) {
 
   const f = document.getElementById("modal-frame") as HTMLIFrameElement;
   f.src = "about:blank";
-  // Fetch + rewrite + serve through a blob URL so the iframe renders properly
-  const blobUrl = await cloakGameHtml(g.id, g.url, g.name);
+  const blobUrl = await cloakGameHtml(g);
 
   if (settings.aboutBlank) {
     openInAboutBlank(blobUrl, g.name);
@@ -620,7 +682,6 @@ function openMovie(m: Movie) {
   f.onload = () => setLoading(false);
   f.src = blobUrl;
 
-  // Build server switcher
   const sr = document.getElementById("server-row")!;
   sr.innerHTML = "";
   SERVERS.forEach((s) => {
@@ -663,8 +724,6 @@ async function goFullscreen() {
     try { await document.exitFullscreen(); } catch {}
     return;
   }
-  // Prefer the iframe so games / players can use the full screen, but fall
-  // back to the modal shell if the iframe rejects fullscreen.
   try {
     await (frame.requestFullscreen?.() ?? Promise.reject());
     return;
@@ -687,8 +746,6 @@ function initModal() {
   document.getElementById("modal-newtab")!.addEventListener("click", () => {
     const f = document.getElementById("modal-frame") as HTMLIFrameElement;
     if (!f.src || f.src === "about:blank") return;
-    // For blob URLs, opening in a new tab loses context; pop the wrapper
-    // page in a new window instead.
     window.open(f.src, "_blank", "noopener");
   });
 }
@@ -718,7 +775,6 @@ function applyCloak() {
 }
 
 function bindSettings() {
-  // theme
   document.querySelectorAll<HTMLButtonElement>(".swatch").forEach((s) => {
     s.addEventListener("click", () => {
       settings.theme = s.dataset.theme as Settings["theme"];
@@ -727,55 +783,18 @@ function bindSettings() {
     });
   });
 
-  const sStars = document.getElementById("set-stars") as HTMLInputElement;
-  const sLines = document.getElementById("set-lines") as HTMLInputElement;
-  const sMouse = document.getElementById("set-mouse") as HTMLInputElement;
-  const sDensity = document.getElementById("set-density") as HTMLInputElement;
-  const sDensityVal = document.getElementById("set-density-val") as HTMLOutputElement;
-  const sSpeed = document.getElementById("set-speed") as HTMLInputElement;
-  const sSpeedVal = document.getElementById("set-speed-val") as HTMLOutputElement;
   const sCloakTitle = document.getElementById("set-cloak-title") as HTMLInputElement;
   const sCloakIcon = document.getElementById("set-cloak-icon") as HTMLSelectElement;
   const sAboutBlank = document.getElementById("set-aboutblank") as HTMLInputElement;
   const sAutoplay = document.getElementById("set-autoplay") as HTMLInputElement;
   const sServer = document.getElementById("set-server") as HTMLSelectElement;
 
-  // hydrate from persisted settings
-  sStars.checked = settings.showStars;
-  sLines.checked = settings.showLines;
-  sMouse.checked = settings.reactToMouse;
-  sDensity.value = String(settings.density);
-  sDensityVal.value = String(settings.density);
-  sSpeed.value = String(settings.speed);
-  sSpeedVal.value = String(settings.speed);
   sCloakTitle.value = settings.cloakTitle;
   sCloakIcon.value = settings.cloakIcon;
   sAboutBlank.checked = settings.aboutBlank;
   sAutoplay.checked = settings.autoplay;
   sServer.value = settings.server;
 
-  sStars.addEventListener("change", () => {
-    settings.showStars = sStars.checked;
-    saveSettings(settings); rebuildStars();
-  });
-  sLines.addEventListener("change", () => {
-    settings.showLines = sLines.checked;
-    saveSettings(settings);
-  });
-  sMouse.addEventListener("change", () => {
-    settings.reactToMouse = sMouse.checked;
-    saveSettings(settings);
-  });
-  sDensity.addEventListener("input", () => {
-    settings.density = Number(sDensity.value);
-    sDensityVal.value = sDensity.value;
-    saveSettings(settings); rebuildStars();
-  });
-  sSpeed.addEventListener("input", () => {
-    settings.speed = Number(sSpeed.value);
-    sSpeedVal.value = sSpeed.value;
-    saveSettings(settings);
-  });
   sCloakTitle.addEventListener("input", () => {
     settings.cloakTitle = sCloakTitle.value;
     saveSettings(settings); applyCloak();
@@ -797,7 +816,7 @@ function bindSettings() {
     saveSettings(settings);
     if (activeMovie) {
       const f = document.getElementById("modal-frame") as HTMLIFrameElement;
-      f.src = buildEmbedUrl(activeMovie.id, settings.server);
+      f.src = cloakUrl(buildEmbedUrl(activeMovie.id, settings.server), activeMovie.title);
     }
     showToast(`Default server: ${sServer.options[sServer.selectedIndex].text}`);
   });
@@ -805,18 +824,12 @@ function bindSettings() {
   document.getElementById("set-reset")!.addEventListener("click", () => {
     settings = { ...DEFAULT_SETTINGS };
     saveSettings(settings);
-    // re-hydrate
-    sStars.checked = settings.showStars;
-    sLines.checked = settings.showLines;
-    sMouse.checked = settings.reactToMouse;
-    sDensity.value = String(settings.density); sDensityVal.value = sDensity.value;
-    sSpeed.value = String(settings.speed); sSpeedVal.value = sSpeed.value;
     sCloakTitle.value = settings.cloakTitle;
     sCloakIcon.value = settings.cloakIcon;
     sAboutBlank.checked = settings.aboutBlank;
     sAutoplay.checked = settings.autoplay;
     sServer.value = settings.server;
-    applyTheme(); applyCloak(); rebuildStars();
+    applyTheme(); applyCloak();
     showToast("Settings reset to defaults.");
   });
 }
@@ -864,11 +877,12 @@ async function boot() {
   renderMovies();
   renderStats();
 
-  // Fetch games asynchronously, then re-render
-  await loadGames();
+  // Load games + movie posters in parallel
+  await Promise.all([loadGames(), loadPosters()]);
   renderStats();
   renderFeatured();
   renderGames((document.getElementById("games-search") as HTMLInputElement).value);
+  renderMovies((document.getElementById("movies-search") as HTMLInputElement).value);
 }
 
 document.addEventListener("DOMContentLoaded", boot);
