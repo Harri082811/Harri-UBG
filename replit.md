@@ -25,3 +25,10 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+
+## Artifacts
+
+- **harriubg** (`artifacts/harriubg`) — vanilla HTML/CSS/JS unblocked games and movies hub
+  served at `/`. Loads game manifest from `harriwalk0/assets` GitHub repo via jsdelivr,
+  uses cineby-style movie embed servers, and renders an interactive starfield/constellation
+  background. Single-page app with Home, Games, Movies, and Settings tabs.
