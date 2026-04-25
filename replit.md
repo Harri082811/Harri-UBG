@@ -40,6 +40,10 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
     (key in `main.tsx`) and cached in `localStorage` under `harriubg.posters.v1`.
     Streaming via cineby-style provider switcher (vidsrc.cc, vidsrc.xyz, embed.su,
     vidlink.pro, 2embed.cc), each wrapped in a Blob URL.
+  - **Movie catalog**: 1500 titles baked into `MOVIE_LIST` with their TMDB
+    `poster_path` included, so posters render instantly with no runtime API calls
+    (avoids TMDB rate limits). The `loadPosters` helper just expands paths to
+    full image URLs at boot.
   - **Settings**: theme (cosmic / aurora / sunset / midnight), tab cloak (title + icon),
     open-in-about:blank, autoplay toggle, default streaming server. Constellation
     customization removed — always on at sensible defaults.
