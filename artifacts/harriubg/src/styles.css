@@ -36,6 +36,10 @@
 [data-theme="sunset"]   { --accent-1:#fbbf24; --accent-2:#fb7185; --accent-glow:rgba(251,113,133,.35); --star:255,210,180; }
 [data-theme="midnight"] { --accent-1:#94a3b8; --accent-2:#475569; --accent-glow:rgba(148,163,184,.25); --star:220,225,240; }
 
+/* Brand SVG follows the active theme */
+.brand-mark .brand-stop-1 { stop-color: var(--accent-1); }
+.brand-mark .brand-stop-2 { stop-color: var(--accent-2); }
+
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 
