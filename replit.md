@@ -45,3 +45,8 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
     customization removed — always on at sensible defaults.
   - All cards use `<img onerror>` to fall back to a deterministic gradient placeholder
     so missing covers/posters never look broken.
+  - **Vercel deployment**: `vercel.json` at repo root limits Vercel to building only
+    `@workspace/harriubg` (`pnpm --filter @workspace/harriubg run build`) with output at
+    `artifacts/harriubg/dist/public`. The harriubg `vite.config.ts` falls back to default
+    PORT/BASE_PATH when those env vars are absent (build-time only — Replit dev still
+    uses them).
