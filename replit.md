@@ -28,9 +28,16 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 
 ## Artifacts
 
-- **harriubg** (`artifacts/harriubg`) — vanilla HTML/CSS/JS unblocked games and movies hub
-  served at `/`. Single-page app with Home / Games / Movies / Settings tabs and an
-  always-on constellation background.
+- **harriubg** (`artifacts/harriubg`) — vanilla HTML/CSS/JS unblocked games, movies, and TV
+  hub served at `/`. Single-page app with Home / Games / Movies / Shows / Settings tabs
+  and an always-on constellation background. Theme-aware brand SVG + favicon driven by
+  CSS `--accent-1`/`--accent-2`. Stats: 684 games · 4147 movies · 3000 shows.
+  - **Shows (3000)**: TMDB-popular TV catalog baked into `SHOW_LIST` in `main.tsx`
+    (no runtime catalog calls). Per-show season/episode metadata fetched lazily from
+    TMDB on open and cached in `localStorage` under `harriubg.shows.v1`. Modal exposes
+    a season + episode dropdown plus a numeric fallback in `#episode-row`. Streaming
+    via `buildShowEmbedUrl` over vidsrc.cc / xyz / embed.su / vidlink.pro / 2embed.cc
+    TV variants, switchable from the same server-row used for movies.
   - **Games (~685)**: manifest from `harriwalk0/assets/zones.json`. Game HTML loaded from
     `raw.githubusercontent.com/gn-math/html` (single-file games, all 685 entries) and
     wrapped in a `text/html` Blob URL for cloaking. A small `MULTI_FILE_IDS` set prefers
