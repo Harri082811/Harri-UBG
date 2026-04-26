@@ -768,7 +768,7 @@ main {
   position: relative;
   width: min(1280px, 100%);
   max-height: 92vh;
-  background: #000000;
+  background: #0a0a16;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -789,7 +789,7 @@ main {
   justify-content: space-between;
   gap: 14px;
   padding: 14px 18px;
-  background: rgb(0, 0, 0,.02);
+  background: rgba(255,255,255,.02);
   border-bottom: 1px solid var(--border);
 }
 .modal-eyebrow {
@@ -815,19 +815,19 @@ main {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: rgb(0, 0, 0,.04);
+  background: rgba(255,255,255,.04);
   border: 1px solid var(--border);
   color: var(--text-dim);
   cursor: pointer;
   transition: color .2s, background .2s, border-color .2s;
 }
-.icon-btn:hover { color: var(--text); background: rgb(0, 0, 0,.08); border-color: var(--border-strong); }
+.icon-btn:hover { color: var(--text); background: rgba(255,255,255,.08); border-color: var(--border-strong); }
 
 .server-row {
   display: flex;
   gap: 4px;
   padding: 4px;
-  background: rgb(0, 0, 0,.04);
+  background: rgba(255,255,255,.04);
   border: 1px solid var(--border);
   border-radius: 999px;
   margin-right: 6px;
@@ -860,9 +860,9 @@ main {
   font-size: 12px;
   padding: 7px 10px;
   border-radius: 10px;
-  border: 1px solid var #0000;
-  background: rgb(0, 0, 0,.04);
-  color: var #0000;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.04);
+  color: var(--text);
   cursor: pointer;
   font-weight: 600;
   font-family: var(--font-sans);
@@ -889,7 +889,7 @@ main {
   padding: 6px 8px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: rgb(0, 0, 0,.04);
+  background: rgba(255,255,255,.04);
   color: var(--text);
   text-align: center;
 }
@@ -933,7 +933,7 @@ main {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: 3px solid rgb(0, 0, 0,.08);
+  border: 3px solid rgba(255,255,255,.08);
   border-top-color: var(--accent-1);
   animation: spin .9s linear infinite;
 }
@@ -955,7 +955,7 @@ main {
   left: 50%;
   transform: translateX(-50%);
   z-index: 200;
-  background: rgb(0, 0, 0,.06);
+  background: rgba(255,255,255,.06);
   backdrop-filter: blur(18px);
   border: 1px solid var(--border-strong);
   color: var(--text);
