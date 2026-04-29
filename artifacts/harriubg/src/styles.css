@@ -1095,7 +1095,7 @@ main {
 .csel-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .csel-panel {
-  position: fixed;
+  position: absolute;
   z-index: 9999;
   background: #12121f;
   border: 1px solid var(--border-strong);

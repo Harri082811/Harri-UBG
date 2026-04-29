@@ -104,9 +104,9 @@ const MULTI_FILE_IDS = new Set<number>([
 ]);
 
 
-const HARRI_BASE = "https://cdn.jsdelivr.net/gh/harriwalk0/assets@main";
+const HARRI_BASE = "https://raw.githack.com/harriwalk0/assets/main";
 const COVERS_BASE = "https://raw.githubusercontent.com/gn-math/covers/main";
-const GAMES_BASE = "https://raw.githubusercontent.com/gn-math/html/main";
+const GAMES_BASE = "https://raw.githack.com/gn-math/html/main";
 const ZONES_URL = "https://raw.githubusercontent.com/harriwalk0/assets/main/zones.json";
 
 let GAMES: Game[] = [];
@@ -50518,6 +50518,7 @@ function createCustomSelect(
   const panel = document.createElement("div");
   panel.className = "csel-panel";
   panel.hidden = true;
+  document.body.appendChild(panel);
 
   const updateSelected = (val: string) => {
     const opt = options.find((o) => o.value === val);
@@ -50554,8 +50555,10 @@ function createCustomSelect(
     );
     if (!isOpen) {
       const rect = trigger.getBoundingClientRect();
-      panel.style.top = `${rect.bottom + 4}px`;
-      panel.style.left = `${rect.left}px`;
+      const sx = window.pageXOffset;
+      const sy = window.pageYOffset;
+      panel.style.top = `${rect.bottom + sy + 4}px`;
+      panel.style.left = `${rect.left + sx}px`;
       panel.style.width = `${Math.max(rect.width, 180)}px`;
       panel.hidden = false;
       trigger.setAttribute("aria-expanded", "true");
@@ -50563,7 +50566,6 @@ function createCustomSelect(
   });
 
   wrapper.appendChild(trigger);
-  wrapper.appendChild(panel);
   return wrapper;
 }
 
