@@ -18,6 +18,13 @@
     />
   </head>
   <body>
+    <div class="blobs" id="blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+      <div class="blob blob-4"></div>
+      <div class="blob blob-5"></div>
+    </div>
     <canvas id="constellation"></canvas>
 
     <header class="topbar">
@@ -400,42 +407,10 @@
                   placeholder="Type Something..."
                 />
               </label>
-              <label class="field">
+              <div class="field">
                 <span>Tab icon</span>
-                <select id="set-cloak-icon">
-                  <option value="" style="color: black">Default</option>
-                  <option
-                    value="https://www.google.com/favicon.ico"
-                    style="color: black"
-                  >
-                    Search
-                  </option>
-                  <option
-                    value="https://ssl.gstatic.com/classroom/favicon.png"
-                    style="color: black"
-                  >
-                    Classroom
-                  </option>
-                  <option
-                    value="https://www.khanacademy.org/favicon.ico"
-                    style="color: black"
-                  >
-                    Khan
-                  </option>
-                  <option
-                    value="https://www.canvas.net/favicon.ico"
-                    style="color: black"
-                  >
-                    Canvas
-                  </option>
-                  <option
-                    value="https://www.wikipedia.org/static/favicon/wikipedia.ico"
-                    style="color: black"
-                  >
-                    Wiki
-                  </option>
-                </select>
-              </label>
+                <div id="set-cloak-icon-wrap"></div>
+              </div>
             </div>
           </div>
 
@@ -457,25 +432,40 @@
               </label>
             </div>
             <div class="row">
-              <label class="field">
+              <div class="field">
                 <span>Default video source</span>
-                <select id="set-server">
-                  <option value="vidsrc.cc" style="color: black">
-                    Source 1
-                  </option>
-                  <option value="vidsrc.xyz" style="color: black">
-                    Source 2 (recommended)
-                  </option>
-                  <option value="embed.su" style="color: black">
-                    Source 3
-                  </option>
-                  <option value="vidlink.pro" style="color: black">
-                    Source 4
-                  </option>
-                  <option value="2embed.cc" style="color: black">
-                    Source 5
-                  </option>
-                </select>
+                <div id="set-server-wrap"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card setting">
+            <div class="setting-head">
+              <h3>Background Effects</h3>
+              <p>Toggle the visual effects behind the content.</p>
+            </div>
+            <div class="bg-toggle-row">
+              <label class="bg-toggle-item" id="toggle-stars-label">
+                <input type="checkbox" id="set-stars" checked />
+                <div class="bg-toggle-icon">✦</div>
+                <div class="bg-toggle-text">
+                  <strong>Stars</strong>
+                  <span>Animated constellation overlay</span>
+                </div>
+                <label class="switch" style="margin:0;pointer-events:none">
+                  <span class="slider" id="stars-slider-vis"></span>
+                </label>
+              </label>
+              <label class="bg-toggle-item" id="toggle-blobs-label">
+                <input type="checkbox" id="set-blobs" checked />
+                <div class="bg-toggle-icon">◉</div>
+                <div class="bg-toggle-text">
+                  <strong>Blobs</strong>
+                  <span>Soft glowing orbs behind UI</span>
+                </div>
+                <label class="switch" style="margin:0;pointer-events:none">
+                  <span class="slider" id="blobs-slider-vis"></span>
+                </label>
               </label>
             </div>
           </div>

@@ -454,11 +454,11 @@ main {
 .card-cover img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
   display: block;
   transition: transform .35s cubic-bezier(.2,.8,.2,1);
-  padding: 6px;
+  padding: 0;
   box-sizing: border-box;
 }
 .card-tile:hover .card-cover img { transform: scale(1.04); }
@@ -973,7 +973,266 @@ main {
   to   { opacity: 1; transform: translateX(-50%); }
 }
 
-/* Reduced motion */
+/* ============================================================
+   Animated background blobs
+   ============================================================ */
+.blobs {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+}
+.blobs.hidden { display: none; }
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform;
+}
+.blob-1 {
+  width: 700px; height: 700px;
+  background: var(--accent-1);
+  top: -220px; left: -180px;
+  opacity: 0.10;
+  animation: blob-f1 20s ease-in-out infinite;
+}
+.blob-2 {
+  width: 560px; height: 560px;
+  background: var(--accent-2);
+  top: 35%; right: -160px;
+  opacity: 0.09;
+  animation: blob-f2 26s ease-in-out infinite;
+}
+.blob-3 {
+  width: 480px; height: 480px;
+  background: var(--accent-1);
+  bottom: -120px; left: 28%;
+  opacity: 0.08;
+  animation: blob-f3 22s ease-in-out infinite;
+}
+.blob-4 {
+  width: 400px; height: 400px;
+  background: var(--accent-2);
+  top: 18%; left: 48%;
+  opacity: 0.07;
+  animation: blob-f4 28s ease-in-out infinite;
+}
+.blob-5 {
+  width: 340px; height: 340px;
+  background: var(--accent-1);
+  bottom: 18%; right: 16%;
+  opacity: 0.09;
+  animation: blob-f5 18s ease-in-out infinite;
+}
+
+@keyframes blob-f1 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%      { transform: translate(90px,70px) scale(1.12); }
+  66%      { transform: translate(-50px,110px) scale(0.94); }
+}
+@keyframes blob-f2 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  40%     { transform: translate(-110px,-90px) scale(1.18); }
+  70%     { transform: translate(70px,-50px) scale(0.88); }
+}
+@keyframes blob-f3 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50%     { transform: translate(-90px,-70px) scale(1.22); }
+}
+@keyframes blob-f4 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  30%     { transform: translate(70px,90px) scale(0.90); }
+  60%     { transform: translate(-90px,50px) scale(1.12); }
+}
+@keyframes blob-f5 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  45%     { transform: translate(-70px,-90px) scale(1.14); }
+}
+
+/* ============================================================
+   Custom select component  (.csel)
+   ============================================================ */
+.csel {
+  position: relative;
+  flex: 1 1 240px;
+}
+
+.csel-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color .2s, box-shadow .2s;
+  text-align: left;
+}
+.csel-trigger:hover { border-color: var(--border-strong); }
+.csel-trigger[aria-expanded="true"] {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(34,211,238,.12);
+}
+.csel-trigger svg {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  transition: transform .2s;
+}
+.csel-trigger[aria-expanded="true"] svg { transform: rotate(180deg); }
+.csel-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.csel-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  min-width: 100%;
+  z-index: 300;
+  background: #12121f;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  overflow: hidden;
+  overflow-y: auto;
+  max-height: 260px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04);
+  animation: csel-open .15s ease;
+}
+@keyframes csel-open {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+.csel-panel[hidden] { display: none !important; }
+
+.csel-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: 0;
+  color: var(--text-dim);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: background .15s, color .15s;
+  gap: 8px;
+}
+.csel-opt:hover { background: rgba(255,255,255,.07); color: var(--text); }
+.csel-opt.active {
+  color: var(--accent-1);
+  background: rgba(34,211,238,.08);
+  font-weight: 600;
+}
+.csel-check {
+  opacity: 0;
+  font-size: 14px;
+  flex-shrink: 0;
+  color: var(--accent-1);
+}
+.csel-opt.active .csel-check { opacity: 1; }
+
+/* compact variant for modal episode/season picker */
+.ep-csel { flex: 0 1 auto; }
+.ep-csel .csel-trigger {
+  font-size: 12px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  max-width: 150px;
+  min-width: 100px;
+}
+.ep-csel .csel-panel { min-width: 150px; }
+
+/* field wrapper label compatibility */
+.field .csel { flex: unset; width: 100%; }
+
+/* ============================================================
+   Extra card UI detail — shine + badge
+   ============================================================ */
+.card-tile {
+  position: relative;
+}
+.card-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,.06) 0%, transparent 55%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s;
+  z-index: 3;
+}
+.card-tile:hover::before { opacity: 1; }
+
+.card-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(7,7,15,.72);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.12);
+  color: var(--text-dim);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   Settings — visual background toggle
+   ============================================================ */
+.bg-toggle-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.bg-toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 200px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color .2s, background .2s;
+}
+.bg-toggle-item:hover { background: rgba(255,255,255,.05); border-color: var(--border-strong); }
+.bg-toggle-item input { position: absolute; opacity: 0; pointer-events: none; }
+.bg-toggle-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  font-size: 16px;
+}
+.bg-toggle-text { flex: 1; }
+.bg-toggle-text strong { display: block; font-size: 14px; font-weight: 600; color: var(--text); }
+.bg-toggle-text span { font-size: 12px; color: var(--text-faint); }
+
+/* ============================================================
+   Reduced motion
+   ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0s !important;

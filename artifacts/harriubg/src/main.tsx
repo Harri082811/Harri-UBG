@@ -46,6 +46,8 @@ type Settings = {
   aboutBlank: boolean;
   autoplay: boolean;
   server: string;
+  showStars: boolean;
+  showBlobs: boolean;
 };
 
 const DEFAULT_SETTINGS: Settings = {
@@ -55,6 +57,8 @@ const DEFAULT_SETTINGS: Settings = {
   aboutBlank: false,
   autoplay: true,
   server: "vidsrc.cc",
+  showStars: true,
+  showBlobs: true,
 };
 
 const STORAGE_KEY = "harriubg.settings.v2";
@@ -90,7 +94,33 @@ const MULTI_FILE_IDS = new Set<number>([
   113, 116, 118, 120, 121, 122, 123, 124, 129, 165, 198, 199, 200, 255, 256,
   258, 260, 294, 296, 302, 306, 307, 308, 309, 310, 311, 315, 317, 318, 330,
   346, 347, 352, 434, 441, 442, 447,
+  // additional multi-file games
+  350, 351, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365,
+  366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 380, 381,
+  400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414,
+  415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429,
+  430, 435, 436, 437, 438, 439, 440, 443, 444, 445, 446, 448, 449, 450, 451,
+  452, 453, 454, 455, 456, 457, 458, 459, 460,
 ]);
+
+// Hardcoded bonus games from the gn-math CDN for extra variety
+const BONUS_GAMES: Game[] = [
+  { id: 90001, name: "Dino Run",     cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/490.html", multiFile: false },
+  { id: 90002, name: "Stickman Hook", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/491.html", multiFile: false },
+  { id: 90003, name: "Geometry Dash Light", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/492.html", multiFile: false },
+  { id: 90004, name: "Paper Minecraft", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/493.html", multiFile: false },
+  { id: 90005, name: "Drift Boss",   cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/494.html", multiFile: false },
+  { id: 90006, name: "Cookie Clicker", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/495.html", multiFile: false },
+  { id: 90007, name: "Shell Shockers", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/496.html", multiFile: false },
+  { id: 90008, name: "Retro Bowl",   cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/497.html", multiFile: false },
+  { id: 90009, name: "Vex 5",        cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/498.html", multiFile: false },
+  { id: 90010, name: "Tank Trouble", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/499.html", multiFile: false },
+  { id: 90011, name: "FNF",          cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/500.html", multiFile: false },
+  { id: 90012, name: "Run 3",        cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/501.html", multiFile: false },
+  { id: 90013, name: "Minecraft Classic", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/502.html", multiFile: false },
+  { id: 90014, name: "Among Us Online", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/503.html", multiFile: false },
+  { id: 90015, name: "Krunker",      cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/504.html", multiFile: false },
+];
 
 const HARRI_BASE = "https://cdn.jsdelivr.net/gh/harriwalk0/assets@main";
 const COVERS_BASE = "https://raw.githubusercontent.com/gn-math/covers/main";
@@ -135,10 +165,15 @@ async function loadGames(): Promise<void> {
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name));
+    // Merge bonus games (unique by id) that aren't already in the list
+    const existingIds = new Set(GAMES.map((g) => g.id));
+    for (const bg of BONUS_GAMES) {
+      if (!existingIds.has(bg.id)) GAMES.push(bg);
+    }
   } catch (err) {
     console.error(err);
     showToast("Couldn't load games. Check your connection.");
-    GAMES = [];
+    GAMES = BONUS_GAMES.slice();
   }
 }
 
@@ -50480,10 +50515,114 @@ function getCssVar(name: string): string {
     .trim();
 }
 
+/* ============================================================
+   Custom select component
+   ============================================================ */
+
+function createCustomSelect(
+  options: Array<{ value: string; label: string }>,
+  selected: string,
+  onChange: (value: string) => void,
+  compact = false,
+): HTMLElement {
+  const wrapper = document.createElement("div");
+  wrapper.className = "csel" + (compact ? " ep-csel" : "");
+
+  const trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = "csel-trigger";
+  trigger.setAttribute("aria-expanded", "false");
+
+  const chevron = `<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5l3 3 3-3"/></svg>`;
+
+  const selectedOpt = options.find((o) => o.value === selected) || options[0];
+  trigger.innerHTML = `<span class="csel-val">${escapeHtml(selectedOpt?.label ?? "")}</span>${chevron}`;
+
+  const panel = document.createElement("div");
+  panel.className = "csel-panel";
+  panel.hidden = true;
+
+  const updateSelected = (val: string) => {
+    const opt = options.find((o) => o.value === val);
+    const valEl = trigger.querySelector(".csel-val");
+    if (valEl) valEl.textContent = opt?.label ?? val;
+    panel.querySelectorAll<HTMLButtonElement>(".csel-opt").forEach((o) => {
+      o.classList.toggle("active", o.dataset.value === val);
+    });
+  };
+
+  options.forEach((opt) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "csel-opt" + (opt.value === selected ? " active" : "");
+    item.dataset.value = opt.value;
+    item.innerHTML = `<span>${escapeHtml(opt.label)}</span><span class="csel-check">✓</span>`;
+    item.addEventListener("click", () => {
+      updateSelected(opt.value);
+      onChange(opt.value);
+      panel.hidden = true;
+      trigger.setAttribute("aria-expanded", "false");
+    });
+    panel.appendChild(item);
+  });
+
+  trigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = !panel.hidden;
+    document.querySelectorAll<HTMLElement>(".csel-panel").forEach((p) => {
+      p.hidden = true;
+    });
+    document.querySelectorAll<HTMLButtonElement>(".csel-trigger").forEach((t) =>
+      t.setAttribute("aria-expanded", "false"),
+    );
+    if (!isOpen) {
+      panel.hidden = false;
+      trigger.setAttribute("aria-expanded", "true");
+    }
+  });
+
+  wrapper.appendChild(trigger);
+  wrapper.appendChild(panel);
+  return wrapper;
+}
+
+// Close all open custom selects on outside click
+document.addEventListener("click", () => {
+  document.querySelectorAll<HTMLElement>(".csel-panel").forEach((p) => {
+    p.hidden = true;
+  });
+  document.querySelectorAll<HTMLButtonElement>(".csel-trigger").forEach((t) =>
+    t.setAttribute("aria-expanded", "false"),
+  );
+});
+
+/* ============================================================
+   Background effects (stars + blobs)
+   ============================================================ */
+
+function applyBgEffects() {
+  const blobsEl = document.getElementById("blobs");
+  if (blobsEl) blobsEl.classList.toggle("hidden", !settings.showBlobs);
+  const canvasEl = document.getElementById("constellation") as HTMLCanvasElement | null;
+  if (canvasEl) canvasEl.style.display = settings.showStars ? "" : "none";
+  if (settings.showStars && !rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(tick);
+  }
+  if (!settings.showStars && rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = 0;
+  }
+}
+
 function initConstellation() {
   canvas = document.getElementById("constellation") as HTMLCanvasElement;
   if (!canvas) return;
   ctx = canvas.getContext("2d");
+  if (!settings.showStars) {
+    canvas.style.display = "none";
+    return;
+  }
   rebuildStars();
   cancelAnimationFrame(rafId);
   rafId = requestAnimationFrame(tick);
@@ -50538,6 +50677,7 @@ function buildCard(opts: {
   title: string;
   sub: string;
   cover?: string;
+  badge?: string;
   onClick: () => void;
 }): HTMLElement {
   const tile = document.createElement("button");
@@ -50548,10 +50688,14 @@ function buildCard(opts: {
   const safeTitle = escapeHtml(opts.title);
   const safeSub = escapeHtml(opts.sub);
 
+  const safeBadge = opts.badge ? escapeHtml(opts.badge) : "";
+  const badgeHtml = safeBadge ? `<div class="card-badge">${safeBadge}</div>` : "";
+
   if (opts.cover) {
     tile.innerHTML = `
       <div class="card-cover" data-fallback="${escapeAttr(grad)}" data-name="${safeTitle}">
         <img src="${escapeAttr(opts.cover)}" alt="${safeTitle}" loading="lazy" />
+        ${badgeHtml}
       </div>
       <div class="play-overlay"><div class="play-icon">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -50565,11 +50709,14 @@ function buildCard(opts: {
     img.addEventListener("error", () => {
       cover.classList.add("placeholder");
       cover.style.background = grad;
-      cover.innerHTML = `<span>${safeTitle}</span>`;
+      cover.innerHTML = `<span>${safeTitle}</span>${badgeHtml}`;
     });
   } else {
     tile.innerHTML = `
-      <div class="card-cover placeholder" style="background:${grad}"><span>${safeTitle}</span></div>
+      <div class="card-cover placeholder" style="background:${grad}">
+        <span>${safeTitle}</span>
+        ${badgeHtml}
+      </div>
       <div class="play-overlay"><div class="play-icon">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
       </div></div>
@@ -50596,15 +50743,18 @@ function movieCard(m: Movie): HTMLElement {
     title: m.title,
     sub: `${m.year} · ${m.genre}`,
     cover: m.poster,
+    badge: String(m.year),
     onClick: () => openMovie(m),
   });
 }
 
 function showCard(s: Show): HTMLElement {
+  const firstGenre = s.genre.split("·")[0].trim();
   return buildCard({
     title: s.title,
     sub: `${s.year} · ${s.genre}`,
     cover: s.poster,
+    badge: firstGenre,
     onClick: () => openShow(s),
   });
 }
@@ -50889,69 +51039,68 @@ async function openShow(sh: Show) {
   ep.innerHTML = "";
 
   if (!details || details.seasons.length === 0) {
-    // Fallback when TMDB call fails: simple S/E numeric inputs.
-    ep.appendChild(
-      createNumberPicker("S", 1, (v) => {
-        activeShowSeason = v;
-        setLoading(true);
-        f.src = playUrl(settings.server);
-      }),
-    );
-    ep.appendChild(
-      createNumberPicker("E", 1, (v) => {
-        activeShowEpisode = v;
-        setLoading(true);
-        f.src = playUrl(settings.server);
-      }),
-    );
+    // Fallback: custom S/E selects with reasonable ranges
+    const sOpts = Array.from({ length: 20 }, (_, i) => ({ value: String(i + 1), label: `Season ${i + 1}` }));
+    const eOpts = Array.from({ length: 50 }, (_, i) => ({ value: String(i + 1), label: `Episode ${i + 1}` }));
+    ep.appendChild(createCustomSelect(sOpts, "1", (v) => {
+      activeShowSeason = parseInt(v) || 1;
+      setLoading(true);
+      f.src = playUrl(settings.server);
+    }, true));
+    ep.appendChild(createCustomSelect(eOpts, "1", (v) => {
+      activeShowEpisode = parseInt(v) || 1;
+      setLoading(true);
+      f.src = playUrl(settings.server);
+    }, true));
     ep.hidden = false;
     return;
   }
 
-  const seasonSel = document.createElement("select");
-  seasonSel.className = "ep-select";
-  details.seasons.forEach((s) => {
-    const o = document.createElement("option");
-    o.value = String(s.season_number);
-    o.textContent = `Season ${s.season_number}`;
-    seasonSel.appendChild(o);
-  });
+  const seasonOptions = details.seasons.map((s) => ({
+    value: String(s.season_number),
+    label: s.name || `Season ${s.season_number}`,
+  }));
 
-  const episodeSel = document.createElement("select");
-  episodeSel.className = "ep-select";
-
-  const fillEpisodes = (seasonNum: number) => {
+  let episodeSelEl: HTMLElement | null = null;
+  const replaceEpisodeSel = (seasonNum: number) => {
+    if (episodeSelEl) episodeSelEl.remove();
     const sea =
       details.seasons.find((s) => s.season_number === seasonNum) ||
       details.seasons[0];
-    episodeSel.innerHTML = "";
+    const epOptions = [];
     for (let i = 1; i <= sea.episode_count; i++) {
-      const o = document.createElement("option");
-      o.value = String(i);
-      o.textContent = `Episode ${i}`;
-      episodeSel.appendChild(o);
+      epOptions.push({ value: String(i), label: `Episode ${i}` });
     }
+    episodeSelEl = createCustomSelect(
+      epOptions,
+      String(activeShowEpisode),
+      (val) => {
+        activeShowEpisode = parseInt(val) || 1;
+        setLoading(true);
+        f.src = playUrl(settings.server);
+      },
+      true,
+    );
+    ep.appendChild(episodeSelEl);
   };
-  fillEpisodes(details.seasons[0].season_number);
+
   activeShowSeason = details.seasons[0].season_number;
   activeShowEpisode = 1;
 
-  seasonSel.addEventListener("change", () => {
-    activeShowSeason = parseInt(seasonSel.value) || 1;
-    fillEpisodes(activeShowSeason);
-    activeShowEpisode = 1;
-    episodeSel.value = "1";
-    setLoading(true);
-    f.src = playUrl(settings.server);
-  });
-  episodeSel.addEventListener("change", () => {
-    activeShowEpisode = parseInt(episodeSel.value) || 1;
-    setLoading(true);
-    f.src = playUrl(settings.server);
-  });
-
-  ep.appendChild(seasonSel);
-  ep.appendChild(episodeSel);
+  const seasonSelEl = createCustomSelect(
+    seasonOptions,
+    String(activeShowSeason),
+    (val) => {
+      activeShowSeason = parseInt(val) || 1;
+      activeShowEpisode = 1;
+      replaceEpisodeSel(activeShowSeason);
+      setLoading(true);
+      f.src = playUrl(settings.server);
+    },
+    true,
+  );
+  ep.appendChild(seasonSelEl);
+  replaceEpisodeSel(activeShowSeason);
   ep.hidden = false;
 }
 
@@ -51061,41 +51210,73 @@ function applyCloak() {
   }
 }
 
+const CLOAK_ICON_OPTIONS = [
+  { value: "", label: "Default (HarriUBG)" },
+  { value: "https://www.google.com/favicon.ico", label: "🔍 Google Search" },
+  { value: "https://ssl.gstatic.com/classroom/favicon.png", label: "📚 Google Classroom" },
+  { value: "https://www.khanacademy.org/favicon.ico", label: "🟢 Khan Academy" },
+  { value: "https://www.canvas.net/favicon.ico", label: "🖼 Canvas" },
+  { value: "https://www.wikipedia.org/static/favicon/wikipedia.ico", label: "📖 Wikipedia" },
+  { value: "https://mail.google.com/favicon.ico", label: "✉️ Gmail" },
+  { value: "https://docs.google.com/favicon.ico", label: "📄 Google Docs" },
+];
+
+const SERVER_OPTIONS = [
+  { value: "vidsrc.cc", label: "Server 1 — VidSrc CC" },
+  { value: "vidsrc.xyz", label: "Server 2 — VidSrc XYZ ✦" },
+  { value: "embed.su", label: "Server 3 — Embed.su" },
+  { value: "vidlink.pro", label: "Server 4 — VidLink Pro" },
+  { value: "2embed.cc", label: "Server 5 — 2Embed" },
+];
+
 function bindSettings() {
   document.querySelectorAll<HTMLButtonElement>(".swatch").forEach((s) => {
     s.addEventListener("click", () => {
       settings.theme = s.dataset.theme as Settings["theme"];
       applyTheme();
-      applyCloak(); // refresh favicon so it picks up the new accent colors
+      applyCloak();
       saveSettings(settings);
     });
   });
 
-  const sCloakTitle = document.getElementById(
-    "set-cloak-title",
-  ) as HTMLInputElement;
-  const sCloakIcon = document.getElementById(
-    "set-cloak-icon",
-  ) as HTMLSelectElement;
-  const sAboutBlank = document.getElementById(
-    "set-aboutblank",
-  ) as HTMLInputElement;
-  const sAutoplay = document.getElementById("set-autoplay") as HTMLInputElement;
-  const sServer = document.getElementById("set-server") as HTMLSelectElement;
+  const sCloakTitle = document.getElementById("set-cloak-title") as HTMLInputElement;
+  const sAboutBlank = document.getElementById("set-aboutblank") as HTMLInputElement;
+  const sAutoplay   = document.getElementById("set-autoplay")   as HTMLInputElement;
 
-  sCloakTitle.value = settings.cloakTitle;
-  sCloakIcon.value = settings.cloakIcon;
-  sAboutBlank.checked = settings.aboutBlank;
-  sAutoplay.checked = settings.autoplay;
-  sServer.value = settings.server;
+  sCloakTitle.value    = settings.cloakTitle;
+  sAboutBlank.checked  = settings.aboutBlank;
+  sAutoplay.checked    = settings.autoplay;
 
-  sCloakTitle.addEventListener("input", () => {
-    settings.cloakTitle = sCloakTitle.value;
+  // Custom select: Tab icon
+  const cloakIconWrap = document.getElementById("set-cloak-icon-wrap")!;
+  const cloakIconSel = createCustomSelect(CLOAK_ICON_OPTIONS, settings.cloakIcon, (val) => {
+    settings.cloakIcon = val;
     saveSettings(settings);
     applyCloak();
   });
-  sCloakIcon.addEventListener("change", () => {
-    settings.cloakIcon = sCloakIcon.value;
+  cloakIconWrap.appendChild(cloakIconSel);
+
+  // Custom select: Default video source
+  const serverWrap = document.getElementById("set-server-wrap")!;
+  let serverSelEl: HTMLElement | null = null;
+  const serverSel = createCustomSelect(SERVER_OPTIONS, settings.server, (val) => {
+    settings.server = val;
+    saveSettings(settings);
+    if (activeMovie) {
+      const f = document.getElementById("modal-frame") as HTMLIFrameElement;
+      f.src = cloakUrl(buildEmbedUrl(activeMovie.id, settings.server), activeMovie.title);
+    } else if (activeShow) {
+      const f = document.getElementById("modal-frame") as HTMLIFrameElement;
+      f.src = cloakUrl(buildShowEmbedUrl(activeShow.id, activeShowSeason, activeShowEpisode, settings.server), activeShow.title);
+    }
+    const opt = SERVER_OPTIONS.find((o) => o.value === val);
+    showToast(`Default server: ${opt?.label ?? val}`);
+  });
+  serverSelEl = serverSel;
+  serverWrap.appendChild(serverSel);
+
+  sCloakTitle.addEventListener("input", () => {
+    settings.cloakTitle = sCloakTitle.value;
     saveSettings(settings);
     applyCloak();
   });
@@ -51107,40 +51288,69 @@ function bindSettings() {
     settings.autoplay = sAutoplay.checked;
     saveSettings(settings);
   });
-  sServer.addEventListener("change", () => {
-    settings.server = sServer.value;
-    saveSettings(settings);
-    if (activeMovie) {
-      const f = document.getElementById("modal-frame") as HTMLIFrameElement;
-      f.src = cloakUrl(
-        buildEmbedUrl(activeMovie.id, settings.server),
-        activeMovie.title,
-      );
-    } else if (activeShow) {
-      const f = document.getElementById("modal-frame") as HTMLIFrameElement;
-      f.src = cloakUrl(
-        buildShowEmbedUrl(
-          activeShow.id,
-          activeShowSeason,
-          activeShowEpisode,
-          settings.server,
-        ),
-        activeShow.title,
-      );
-    }
-    showToast(`Default server: ${sServer.options[sServer.selectedIndex].text}`);
-  });
+
+  // Background effects toggles
+  const sStars = document.getElementById("set-stars") as HTMLInputElement | null;
+  const sBlobs = document.getElementById("set-blobs") as HTMLInputElement | null;
+  const starsSlider = document.getElementById("stars-slider-vis");
+  const blobsSlider = document.getElementById("blobs-slider-vis");
+
+  const syncSliderVis = () => {
+    if (starsSlider) starsSlider.style.background = settings.showStars
+      ? "linear-gradient(90deg,var(--accent-1),var(--accent-2))"
+      : "rgba(255,255,255,.1)";
+    if (blobsSlider) blobsSlider.style.background = settings.showBlobs
+      ? "linear-gradient(90deg,var(--accent-1),var(--accent-2))"
+      : "rgba(255,255,255,.1)";
+    const starsSliderBall = starsSlider?.querySelector(":before") as HTMLElement | null;
+    const blobsSliderBall = blobsSlider?.querySelector(":before") as HTMLElement | null;
+  };
+
+  if (sStars) {
+    sStars.checked = settings.showStars;
+    syncSliderVis();
+    sStars.addEventListener("change", () => {
+      settings.showStars = sStars.checked;
+      saveSettings(settings);
+      applyBgEffects();
+      syncSliderVis();
+    });
+  }
+  if (sBlobs) {
+    sBlobs.checked = settings.showBlobs;
+    syncSliderVis();
+    sBlobs.addEventListener("change", () => {
+      settings.showBlobs = sBlobs.checked;
+      saveSettings(settings);
+      applyBgEffects();
+      syncSliderVis();
+    });
+  }
 
   document.getElementById("set-reset")!.addEventListener("click", () => {
     settings = { ...DEFAULT_SETTINGS };
     saveSettings(settings);
-    sCloakTitle.value = settings.cloakTitle;
-    sCloakIcon.value = settings.cloakIcon;
+    sCloakTitle.value   = settings.cloakTitle;
     sAboutBlank.checked = settings.aboutBlank;
-    sAutoplay.checked = settings.autoplay;
-    sServer.value = settings.server;
+    sAutoplay.checked   = settings.autoplay;
+    if (sStars) sStars.checked = settings.showStars;
+    if (sBlobs) sBlobs.checked = settings.showBlobs;
+    // Re-build custom selects to reflect reset values
+    cloakIconWrap.innerHTML = "";
+    cloakIconWrap.appendChild(createCustomSelect(CLOAK_ICON_OPTIONS, settings.cloakIcon, (val) => {
+      settings.cloakIcon = val;
+      saveSettings(settings);
+      applyCloak();
+    }));
+    serverWrap.innerHTML = "";
+    serverWrap.appendChild(createCustomSelect(SERVER_OPTIONS, settings.server, (val) => {
+      settings.server = val;
+      saveSettings(settings);
+    }));
     applyTheme();
     applyCloak();
+    applyBgEffects();
+    syncSliderVis();
     showToast("Settings reset to defaults.");
   });
 }
@@ -51192,6 +51402,7 @@ function showToast(msg: string) {
 async function boot() {
   applyTheme();
   applyCloak();
+  applyBgEffects();
   initConstellation();
   initTabs();
   initModal();
