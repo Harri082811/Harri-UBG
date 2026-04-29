@@ -238,6 +238,14 @@
           </div>
           <div class="rail-track" id="featured-movies"></div>
         </div>
+
+        <div class="rail">
+          <div class="rail-head">
+            <h2>Trending shows</h2>
+            <button class="link" data-go="shows">See all →</button>
+          </div>
+          <div class="rail-track" id="featured-shows"></div>
+        </div>
       </section>
 
       <!-- GAMES -->
@@ -444,28 +452,16 @@
               <h3>Background Effects</h3>
               <p>Toggle the visual effects behind the content.</p>
             </div>
-            <div class="bg-toggle-row">
-              <label class="bg-toggle-item" id="toggle-stars-label">
+            <div class="row">
+              <label class="switch">
                 <input type="checkbox" id="set-stars" checked />
-                <div class="bg-toggle-icon">✦</div>
-                <div class="bg-toggle-text">
-                  <strong>Stars</strong>
-                  <span>Animated constellation overlay</span>
-                </div>
-                <label class="switch" style="margin:0;pointer-events:none">
-                  <span class="slider" id="stars-slider-vis"></span>
-                </label>
+                <span class="slider"></span>
+                <span class="lbl">Stars overlay</span>
               </label>
-              <label class="bg-toggle-item" id="toggle-blobs-label">
+              <label class="switch">
                 <input type="checkbox" id="set-blobs" checked />
-                <div class="bg-toggle-icon">◉</div>
-                <div class="bg-toggle-text">
-                  <strong>Blobs</strong>
-                  <span>Soft glowing orbs behind UI</span>
-                </div>
-                <label class="switch" style="margin:0;pointer-events:none">
-                  <span class="slider" id="blobs-slider-vis"></span>
-                </label>
+                <span class="slider"></span>
+                <span class="lbl">Animated blobs</span>
               </label>
             </div>
           </div>

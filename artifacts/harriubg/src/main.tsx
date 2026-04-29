@@ -103,34 +103,17 @@ const MULTI_FILE_IDS = new Set<number>([
   452, 453, 454, 455, 456, 457, 458, 459, 460,
 ]);
 
-// Hardcoded bonus games from the gn-math CDN for extra variety
-const BONUS_GAMES: Game[] = [
-  { id: 90001, name: "Dino Run",     cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/490.html", multiFile: false },
-  { id: 90002, name: "Stickman Hook", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/491.html", multiFile: false },
-  { id: 90003, name: "Geometry Dash Light", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/492.html", multiFile: false },
-  { id: 90004, name: "Paper Minecraft", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/493.html", multiFile: false },
-  { id: 90005, name: "Drift Boss",   cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/494.html", multiFile: false },
-  { id: 90006, name: "Cookie Clicker", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/495.html", multiFile: false },
-  { id: 90007, name: "Shell Shockers", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/496.html", multiFile: false },
-  { id: 90008, name: "Retro Bowl",   cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/497.html", multiFile: false },
-  { id: 90009, name: "Vex 5",        cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/498.html", multiFile: false },
-  { id: 90010, name: "Tank Trouble", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/499.html", multiFile: false },
-  { id: 90011, name: "FNF",          cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/500.html", multiFile: false },
-  { id: 90012, name: "Run 3",        cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/501.html", multiFile: false },
-  { id: 90013, name: "Minecraft Classic", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/502.html", multiFile: false },
-  { id: 90014, name: "Among Us Online", cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/503.html", multiFile: false },
-  { id: 90015, name: "Krunker",      cover: "", url: "https://cdn.jsdelivr.net/gh/gn-math/html@main/504.html", multiFile: false },
-];
 
 const HARRI_BASE = "https://cdn.jsdelivr.net/gh/harriwalk0/assets@main";
 const COVERS_BASE = "https://raw.githubusercontent.com/gn-math/covers/main";
 const GAMES_BASE = "https://raw.githubusercontent.com/gn-math/html/main";
-const ZONES_URL =
-  "https://raw.githubusercontent.com/harriwalk0/assets/main/zones.json";
+const ZONES_URL = "https://raw.githubusercontent.com/harriwalk0/assets/main/zones.json";
 
 let GAMES: Game[] = [];
 let MOVIES: Movie[] = [];
 let SHOWS: Show[] = [];
+
+const ADULT_KEYWORDS = /\bporn\b|\bsex\b|xxx|hentai|erotic|striptease|nude|nsfw|sexual|adult.film|after.porn/i;
 
 async function loadGames(): Promise<void> {
   try {
@@ -165,15 +148,9 @@ async function loadGames(): Promise<void> {
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-    // Merge bonus games (unique by id) that aren't already in the list
-    const existingIds = new Set(GAMES.map((g) => g.id));
-    for (const bg of BONUS_GAMES) {
-      if (!existingIds.has(bg.id)) GAMES.push(bg);
-    }
   } catch (err) {
     console.error(err);
     showToast("Couldn't load games. Check your connection.");
-    GAMES = BONUS_GAMES.slice();
   }
 }
 
@@ -29219,7 +29196,7 @@ const MOVIE_LIST: Movie[] = [
   },
 ];
 
-MOVIES = MOVIE_LIST;
+MOVIES = MOVIE_LIST.filter(m => !ADULT_KEYWORDS.test(m.title));
 
 /* ============================================================
    SHOWS — TV catalog with baked TMDB poster paths
@@ -50234,7 +50211,7 @@ const SHOW_LIST: Show[] = [
   },
 ];
 
-SHOWS = SHOW_LIST;
+SHOWS = SHOW_LIST.filter(s => !ADULT_KEYWORDS.test(s.title));
 
 const TMDB_KEY = "8265bd1679663a7ea12ac168da84d2e8";
 const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
@@ -50556,7 +50533,7 @@ function createCustomSelect(
     item.type = "button";
     item.className = "csel-opt" + (opt.value === selected ? " active" : "");
     item.dataset.value = opt.value;
-    item.innerHTML = `<span>${escapeHtml(opt.label)}</span><span class="csel-check">✓</span>`;
+    item.innerHTML = `<span>${escapeHtml(opt.label)}</span>`;
     item.addEventListener("click", () => {
       updateSelected(opt.value);
       onChange(opt.value);
@@ -50576,6 +50553,10 @@ function createCustomSelect(
       t.setAttribute("aria-expanded", "false"),
     );
     if (!isOpen) {
+      const rect = trigger.getBoundingClientRect();
+      panel.style.top = `${rect.bottom + 4}px`;
+      panel.style.left = `${rect.left}px`;
+      panel.style.width = `${Math.max(rect.width, 180)}px`;
       panel.hidden = false;
       trigger.setAttribute("aria-expanded", "true");
     }
@@ -50749,12 +50730,11 @@ function movieCard(m: Movie): HTMLElement {
 }
 
 function showCard(s: Show): HTMLElement {
-  const firstGenre = s.genre.split("·")[0].trim();
   return buildCard({
     title: s.title,
     sub: `${s.year} · ${s.genre}`,
     cover: s.poster,
-    badge: firstGenre,
+    badge: String(s.year),
     onClick: () => openShow(s),
   });
 }
@@ -50802,7 +50782,11 @@ function renderFeatured() {
 
   if (fShows) {
     fShows.innerHTML = "";
-    pickRandom(SHOWS, 12).forEach((s) => fShows.appendChild(showCard(s)));
+    if (SHOWS.length > 0) {
+      const trending = SHOWS.filter(s => s.year >= 2024).sort((a, b) => b.year - a.year);
+      const pool = trending.length >= 8 ? trending : SHOWS;
+      pickRandom(pool, 12).forEach((s) => fShows.appendChild(showCard(s)));
+    }
   }
 }
 
@@ -51292,38 +51276,21 @@ function bindSettings() {
   // Background effects toggles
   const sStars = document.getElementById("set-stars") as HTMLInputElement | null;
   const sBlobs = document.getElementById("set-blobs") as HTMLInputElement | null;
-  const starsSlider = document.getElementById("stars-slider-vis");
-  const blobsSlider = document.getElementById("blobs-slider-vis");
-
-  const syncSliderVis = () => {
-    if (starsSlider) starsSlider.style.background = settings.showStars
-      ? "linear-gradient(90deg,var(--accent-1),var(--accent-2))"
-      : "rgba(255,255,255,.1)";
-    if (blobsSlider) blobsSlider.style.background = settings.showBlobs
-      ? "linear-gradient(90deg,var(--accent-1),var(--accent-2))"
-      : "rgba(255,255,255,.1)";
-    const starsSliderBall = starsSlider?.querySelector(":before") as HTMLElement | null;
-    const blobsSliderBall = blobsSlider?.querySelector(":before") as HTMLElement | null;
-  };
 
   if (sStars) {
     sStars.checked = settings.showStars;
-    syncSliderVis();
     sStars.addEventListener("change", () => {
       settings.showStars = sStars.checked;
       saveSettings(settings);
       applyBgEffects();
-      syncSliderVis();
     });
   }
   if (sBlobs) {
     sBlobs.checked = settings.showBlobs;
-    syncSliderVis();
     sBlobs.addEventListener("change", () => {
       settings.showBlobs = sBlobs.checked;
       saveSettings(settings);
       applyBgEffects();
-      syncSliderVis();
     });
   }
 
@@ -51350,7 +51317,6 @@ function bindSettings() {
     applyTheme();
     applyCloak();
     applyBgEffects();
-    syncSliderVis();
     showToast("Settings reset to defaults.");
   });
 }
