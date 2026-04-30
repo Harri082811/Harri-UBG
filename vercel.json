@@ -1,7 +1,15 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm --filter @workspace/harriubg run build",
-  "outputDirectory": "dist/public",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "framework": null
+  "version": 2,
+  "builds": [
+    {
+      "src": "dist/index.mjs",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "dist/index.mjs"
+    }
+  ]
 }
