@@ -103,17 +103,24 @@ const MULTI_FILE_IDS = new Set<number>([
   452, 453, 454, 455, 456, 457, 458, 459, 460,
 ]);
 
-
-const HARRI_BASE = "https://raw.githack.com/harriwalk0/assets/main";
+const HARRI_BASE = "https://cdn.jsdelivr.net/gh/harriwalk0/assets@main";
 const COVERS_BASE = "https://raw.githubusercontent.com/gn-math/covers/main";
-const GAMES_BASE = "https://raw.githack.com/gn-math/html/main";
-const ZONES_URL = "https://raw.githubusercontent.com/harriwalk0/assets/main/zones.json";
+const GAMES_BASE = "https://raw.githubusercontent.com/gn-math/html/main";
+const ZONES_URL =
+  "https://raw.githubusercontent.com/harriwalk0/assets/main/zones.json";
 
 let GAMES: Game[] = [];
 let MOVIES: Movie[] = [];
 let SHOWS: Show[] = [];
 
-const ADULT_KEYWORDS = /\bporn\b|\bsex\b|xxx|hentai|erotic|striptease|nude|nsfw|sexual|adult.film|after.porn/i;
+// Games whose HTML file does not exist in the gn-math/html repo
+const BROKEN_GAME_IDS = new Set<number>([
+  1, 27, 34, 44, 64, 65, 67, 75, 76, 82, 85, 90, 112, 114, 117, 179,
+  212, 213, 214, 253, 265, 266, 429, 502, 520, 589, 590, 591, 593, 615,
+]);
+
+const ADULT_KEYWORDS =
+  /\bporn\b|\bsex\b|xxx|hentai|erotic|striptease|nude|nsfw|sexual|adult.film|after.porn|nymphomaniac|nymphet|nympho|\blust\b|fifty.shades|caligula|stepdad|stepmom|stepsis|stepbro|stepfather|secret.pleasure|apartment.wife|forbidden.sex|schoolgirl.*sex|sex.*schoolgirl|sexmission|viva.erotica|diary.*nymph|nymph.*diary|sex.zero|sex.plate|young.don.juan|tropic.*desire|\bseduct/i;
 
 async function loadGames(): Promise<void> {
   try {
@@ -129,7 +136,7 @@ async function loadGames(): Promise<void> {
     }>;
 
     GAMES = zones
-      .filter((g) => g.id >= 0 && !/^\[/.test(g.name))
+      .filter((g) => g.id >= 0 && !/^\[/.test(g.name) && !BROKEN_GAME_IDS.has(g.id))
       .map((g) => {
         const isMulti = MULTI_FILE_IDS.has(g.id);
         // single-file game URLs come from {HTML_URL}/<filename>.html
@@ -29196,7 +29203,7 @@ const MOVIE_LIST: Movie[] = [
   },
 ];
 
-MOVIES = MOVIE_LIST.filter(m => !ADULT_KEYWORDS.test(m.title));
+MOVIES = MOVIE_LIST.filter((m) => !ADULT_KEYWORDS.test(m.title));
 
 /* ============================================================
    SHOWS — TV catalog with baked TMDB poster paths
@@ -50211,7 +50218,7 @@ const SHOW_LIST: Show[] = [
   },
 ];
 
-SHOWS = SHOW_LIST.filter(s => !ADULT_KEYWORDS.test(s.title));
+SHOWS = SHOW_LIST.filter((s) => !ADULT_KEYWORDS.test(s.title));
 
 const TMDB_KEY = "8265bd1679663a7ea12ac168da84d2e8";
 const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
@@ -50550,9 +50557,9 @@ function createCustomSelect(
     document.querySelectorAll<HTMLElement>(".csel-panel").forEach((p) => {
       p.hidden = true;
     });
-    document.querySelectorAll<HTMLButtonElement>(".csel-trigger").forEach((t) =>
-      t.setAttribute("aria-expanded", "false"),
-    );
+    document
+      .querySelectorAll<HTMLButtonElement>(".csel-trigger")
+      .forEach((t) => t.setAttribute("aria-expanded", "false"));
     if (!isOpen) {
       const rect = trigger.getBoundingClientRect();
       const sx = window.pageXOffset;
@@ -50574,9 +50581,9 @@ document.addEventListener("click", () => {
   document.querySelectorAll<HTMLElement>(".csel-panel").forEach((p) => {
     p.hidden = true;
   });
-  document.querySelectorAll<HTMLButtonElement>(".csel-trigger").forEach((t) =>
-    t.setAttribute("aria-expanded", "false"),
-  );
+  document
+    .querySelectorAll<HTMLButtonElement>(".csel-trigger")
+    .forEach((t) => t.setAttribute("aria-expanded", "false"));
 });
 
 /* ============================================================
@@ -50586,7 +50593,9 @@ document.addEventListener("click", () => {
 function applyBgEffects() {
   const blobsEl = document.getElementById("blobs");
   if (blobsEl) blobsEl.classList.toggle("hidden", !settings.showBlobs);
-  const canvasEl = document.getElementById("constellation") as HTMLCanvasElement | null;
+  const canvasEl = document.getElementById(
+    "constellation",
+  ) as HTMLCanvasElement | null;
   if (canvasEl) canvasEl.style.display = settings.showStars ? "" : "none";
   if (settings.showStars && !rafId) {
     cancelAnimationFrame(rafId);
@@ -50672,7 +50681,9 @@ function buildCard(opts: {
   const safeSub = escapeHtml(opts.sub);
 
   const safeBadge = opts.badge ? escapeHtml(opts.badge) : "";
-  const badgeHtml = safeBadge ? `<div class="card-badge">${safeBadge}</div>` : "";
+  const badgeHtml = safeBadge
+    ? `<div class="card-badge">${safeBadge}</div>`
+    : "";
 
   if (opts.cover) {
     tile.innerHTML = `
@@ -50785,7 +50796,9 @@ function renderFeatured() {
   if (fShows) {
     fShows.innerHTML = "";
     if (SHOWS.length > 0) {
-      const trending = SHOWS.filter(s => s.year >= 2024).sort((a, b) => b.year - a.year);
+      const trending = SHOWS.filter((s) => s.year >= 2024).sort(
+        (a, b) => b.year - a.year,
+      );
       const pool = trending.length >= 8 ? trending : SHOWS;
       pickRandom(pool, 12).forEach((s) => fShows.appendChild(showCard(s)));
     }
@@ -51026,18 +51039,38 @@ async function openShow(sh: Show) {
 
   if (!details || details.seasons.length === 0) {
     // Fallback: custom S/E selects with reasonable ranges
-    const sOpts = Array.from({ length: 20 }, (_, i) => ({ value: String(i + 1), label: `Season ${i + 1}` }));
-    const eOpts = Array.from({ length: 50 }, (_, i) => ({ value: String(i + 1), label: `Episode ${i + 1}` }));
-    ep.appendChild(createCustomSelect(sOpts, "1", (v) => {
-      activeShowSeason = parseInt(v) || 1;
-      setLoading(true);
-      f.src = playUrl(settings.server);
-    }, true));
-    ep.appendChild(createCustomSelect(eOpts, "1", (v) => {
-      activeShowEpisode = parseInt(v) || 1;
-      setLoading(true);
-      f.src = playUrl(settings.server);
-    }, true));
+    const sOpts = Array.from({ length: 20 }, (_, i) => ({
+      value: String(i + 1),
+      label: `Season ${i + 1}`,
+    }));
+    const eOpts = Array.from({ length: 50 }, (_, i) => ({
+      value: String(i + 1),
+      label: `Episode ${i + 1}`,
+    }));
+    ep.appendChild(
+      createCustomSelect(
+        sOpts,
+        "1",
+        (v) => {
+          activeShowSeason = parseInt(v) || 1;
+          setLoading(true);
+          f.src = playUrl(settings.server);
+        },
+        true,
+      ),
+    );
+    ep.appendChild(
+      createCustomSelect(
+        eOpts,
+        "1",
+        (v) => {
+          activeShowEpisode = parseInt(v) || 1;
+          setLoading(true);
+          f.src = playUrl(settings.server);
+        },
+        true,
+      ),
+    );
     ep.hidden = false;
     return;
   }
@@ -51197,22 +51230,28 @@ function applyCloak() {
 }
 
 const CLOAK_ICON_OPTIONS = [
-  { value: "", label: "Default (HarriUBG)" },
-  { value: "https://www.google.com/favicon.ico", label: "🔍 Google Search" },
-  { value: "https://ssl.gstatic.com/classroom/favicon.png", label: "📚 Google Classroom" },
-  { value: "https://www.khanacademy.org/favicon.ico", label: "🟢 Khan Academy" },
-  { value: "https://www.canvas.net/favicon.ico", label: "🖼 Canvas" },
-  { value: "https://www.wikipedia.org/static/favicon/wikipedia.ico", label: "📖 Wikipedia" },
-  { value: "https://mail.google.com/favicon.ico", label: "✉️ Gmail" },
-  { value: "https://docs.google.com/favicon.ico", label: "📄 Google Docs" },
+  { value: "", label: "Default" },
+  { value: "https://www.google.com/favicon.ico", label: "Google" },
+  {
+    value: "https://ssl.gstatic.com/classroom/favicon.png",
+    label: "Google Classroom",
+  },
+  { value: "https://www.khanacademy.org/favicon.ico", label: "Khan Academy" },
+  { value: "https://www.canvas.net/favicon.ico", label: "Canvas" },
+  {
+    value: "https://www.wikipedia.org/static/favicon/wikipedia.ico",
+    label: "Wikipedia",
+  },
+  { value: "https://mail.google.com/favicon.ico", label: "Gmail" },
+  { value: "https://docs.google.com/favicon.ico", label: "Google Docs" },
 ];
 
 const SERVER_OPTIONS = [
-  { value: "vidsrc.cc", label: "Server 1 — VidSrc CC" },
-  { value: "vidsrc.xyz", label: "Server 2 — VidSrc XYZ ✦" },
-  { value: "embed.su", label: "Server 3 — Embed.su" },
-  { value: "vidlink.pro", label: "Server 4 — VidLink Pro" },
-  { value: "2embed.cc", label: "Server 5 — 2Embed" },
+  { value: "vidsrc.cc", label: "Server 1" },
+  { value: "vidsrc.xyz", label: "Server 2 (recommended)" },
+  { value: "embed.su", label: "Server 3" },
+  { value: "vidlink.pro", label: "Server 4" },
+  { value: "2embed.cc", label: "Server 5" },
 ];
 
 function bindSettings() {
@@ -51225,39 +51264,62 @@ function bindSettings() {
     });
   });
 
-  const sCloakTitle = document.getElementById("set-cloak-title") as HTMLInputElement;
-  const sAboutBlank = document.getElementById("set-aboutblank") as HTMLInputElement;
-  const sAutoplay   = document.getElementById("set-autoplay")   as HTMLInputElement;
+  const sCloakTitle = document.getElementById(
+    "set-cloak-title",
+  ) as HTMLInputElement;
+  const sAboutBlank = document.getElementById(
+    "set-aboutblank",
+  ) as HTMLInputElement;
+  const sAutoplay = document.getElementById("set-autoplay") as HTMLInputElement;
 
-  sCloakTitle.value    = settings.cloakTitle;
-  sAboutBlank.checked  = settings.aboutBlank;
-  sAutoplay.checked    = settings.autoplay;
+  sCloakTitle.value = settings.cloakTitle;
+  sAboutBlank.checked = settings.aboutBlank;
+  sAutoplay.checked = settings.autoplay;
 
   // Custom select: Tab icon
   const cloakIconWrap = document.getElementById("set-cloak-icon-wrap")!;
-  const cloakIconSel = createCustomSelect(CLOAK_ICON_OPTIONS, settings.cloakIcon, (val) => {
-    settings.cloakIcon = val;
-    saveSettings(settings);
-    applyCloak();
-  });
+  const cloakIconSel = createCustomSelect(
+    CLOAK_ICON_OPTIONS,
+    settings.cloakIcon,
+    (val) => {
+      settings.cloakIcon = val;
+      saveSettings(settings);
+      applyCloak();
+    },
+  );
   cloakIconWrap.appendChild(cloakIconSel);
 
   // Custom select: Default video source
   const serverWrap = document.getElementById("set-server-wrap")!;
   let serverSelEl: HTMLElement | null = null;
-  const serverSel = createCustomSelect(SERVER_OPTIONS, settings.server, (val) => {
-    settings.server = val;
-    saveSettings(settings);
-    if (activeMovie) {
-      const f = document.getElementById("modal-frame") as HTMLIFrameElement;
-      f.src = cloakUrl(buildEmbedUrl(activeMovie.id, settings.server), activeMovie.title);
-    } else if (activeShow) {
-      const f = document.getElementById("modal-frame") as HTMLIFrameElement;
-      f.src = cloakUrl(buildShowEmbedUrl(activeShow.id, activeShowSeason, activeShowEpisode, settings.server), activeShow.title);
-    }
-    const opt = SERVER_OPTIONS.find((o) => o.value === val);
-    showToast(`Default server: ${opt?.label ?? val}`);
-  });
+  const serverSel = createCustomSelect(
+    SERVER_OPTIONS,
+    settings.server,
+    (val) => {
+      settings.server = val;
+      saveSettings(settings);
+      if (activeMovie) {
+        const f = document.getElementById("modal-frame") as HTMLIFrameElement;
+        f.src = cloakUrl(
+          buildEmbedUrl(activeMovie.id, settings.server),
+          activeMovie.title,
+        );
+      } else if (activeShow) {
+        const f = document.getElementById("modal-frame") as HTMLIFrameElement;
+        f.src = cloakUrl(
+          buildShowEmbedUrl(
+            activeShow.id,
+            activeShowSeason,
+            activeShowEpisode,
+            settings.server,
+          ),
+          activeShow.title,
+        );
+      }
+      const opt = SERVER_OPTIONS.find((o) => o.value === val);
+      showToast(`Default server: ${opt?.label ?? val}`);
+    },
+  );
   serverSelEl = serverSel;
   serverWrap.appendChild(serverSel);
 
@@ -51276,8 +51338,12 @@ function bindSettings() {
   });
 
   // Background effects toggles
-  const sStars = document.getElementById("set-stars") as HTMLInputElement | null;
-  const sBlobs = document.getElementById("set-blobs") as HTMLInputElement | null;
+  const sStars = document.getElementById(
+    "set-stars",
+  ) as HTMLInputElement | null;
+  const sBlobs = document.getElementById(
+    "set-blobs",
+  ) as HTMLInputElement | null;
 
   if (sStars) {
     sStars.checked = settings.showStars;
@@ -51299,23 +51365,27 @@ function bindSettings() {
   document.getElementById("set-reset")!.addEventListener("click", () => {
     settings = { ...DEFAULT_SETTINGS };
     saveSettings(settings);
-    sCloakTitle.value   = settings.cloakTitle;
+    sCloakTitle.value = settings.cloakTitle;
     sAboutBlank.checked = settings.aboutBlank;
-    sAutoplay.checked   = settings.autoplay;
+    sAutoplay.checked = settings.autoplay;
     if (sStars) sStars.checked = settings.showStars;
     if (sBlobs) sBlobs.checked = settings.showBlobs;
     // Re-build custom selects to reflect reset values
     cloakIconWrap.innerHTML = "";
-    cloakIconWrap.appendChild(createCustomSelect(CLOAK_ICON_OPTIONS, settings.cloakIcon, (val) => {
-      settings.cloakIcon = val;
-      saveSettings(settings);
-      applyCloak();
-    }));
+    cloakIconWrap.appendChild(
+      createCustomSelect(CLOAK_ICON_OPTIONS, settings.cloakIcon, (val) => {
+        settings.cloakIcon = val;
+        saveSettings(settings);
+        applyCloak();
+      }),
+    );
     serverWrap.innerHTML = "";
-    serverWrap.appendChild(createCustomSelect(SERVER_OPTIONS, settings.server, (val) => {
-      settings.server = val;
-      saveSettings(settings);
-    }));
+    serverWrap.appendChild(
+      createCustomSelect(SERVER_OPTIONS, settings.server, (val) => {
+        settings.server = val;
+        saveSettings(settings);
+      }),
+    );
     applyTheme();
     applyCloak();
     applyBgEffects();
