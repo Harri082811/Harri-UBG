@@ -11,5 +11,11 @@
       "src": "/(.*)",
       "dest": "dist/index.mjs"
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/dist/index.mjs"
+    }
   ]
 }
