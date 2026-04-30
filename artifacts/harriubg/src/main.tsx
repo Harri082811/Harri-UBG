@@ -50371,30 +50371,20 @@ function cloakUrl(url: string, title: string): string {
   return makeBlobUrl(html);
 }
 
-/** Fetch a game's HTML, normalize its <base href>, and serve via blob URL. */
+/** Fetch a single-file game's HTML and serve via blob URL. */
 async function cloakGameHtml(g: Game): Promise<string> {
+  // Multi-file games (Unity/WebGL) must load from their own origin so that
+  // relative asset paths (loader.js, .wasm, .data) resolve correctly.
+  // Wrapping via cloakUrl keeps source-URL cloaking while letting the game
+  // run from gn-math.github.io without any fetch/rewrite interference.
+  if (g.multiFile) {
+    return cloakUrl(g.url, g.name);
+  }
+
   try {
     const res = await fetch(g.url, { cache: "force-cache" });
     if (!res.ok) throw new Error(`fetch ${g.url} -> ${res.status}`);
     let html = await res.text();
-    // For multi-file games, inject/rewrite <base href> so all relative asset
-    // paths resolve correctly against gn-math.github.io/assets/<id>/.
-    if (g.multiFile) {
-      const goodBase = `${HARRI_BASE}/${g.id}/`;
-      if (/<base\s[^>]*href=/i.test(html)) {
-        html = html.replace(
-          /<base\s[^>]*href=["'][^"']*["'][^>]*>/i,
-          `<base href="${goodBase}">`,
-        );
-      } else {
-        html = html.replace(
-          /<head([^>]*)>/i,
-          `<head$1><base href="${goodBase}">`,
-        );
-      }
-    }
-    // Single-file games already have a working <base href> baked in (e.g.
-    // bubbls/youtube-playables, freebuisness/assets, etc).
     html = html.replace(
       /<title>[\s\S]*?<\/title>/i,
       `<title>${escapeHtml(g.name)}</title>`,
