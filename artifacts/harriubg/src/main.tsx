@@ -50814,6 +50814,24 @@ function pickRandom<T>(arr: T[], n: number): T[] {
   return a.slice(0, Math.min(n, a.length));
 }
 
+type SortMode = "default" | "popularity" | "release";
+let gameSort: SortMode = "default";
+let movieSort: SortMode = "default";
+let showSort: SortMode = "default";
+
+function applySortGames(list: Game[]): Game[] {
+  if (gameSort === "popularity") return [...list].sort((a, b) => a.id - b.id);
+  if (gameSort === "release") return [...list].sort((a, b) => b.id - a.id);
+  return [...list].sort((a, b) => a.name.localeCompare(b.name));
+}
+function applySortMedia<T extends { title: string; year: number }>(
+  list: T[], mode: SortMode,
+): T[] {
+  if (mode === "release") return [...list].sort((a, b) => b.year - a.year || a.title.localeCompare(b.title));
+  if (mode === "popularity") return [...list].sort((a, b) => a.title.localeCompare(b.title));
+  return list;
+}
+
 function renderGames(query = "") {
   const grid = document.getElementById("games-grid")!;
   const empty = document.getElementById("games-empty")!;
@@ -50831,9 +50849,8 @@ function renderGames(query = "") {
     return;
   }
 
-  const filtered = q
-    ? GAMES.filter((g) => g.name.toLowerCase().includes(q))
-    : GAMES;
+  const base = q ? GAMES.filter((g) => g.name.toLowerCase().includes(q)) : GAMES;
+  const filtered = applySortGames(base);
 
   empty.hidden = filtered.length > 0;
   filtered.forEach((g) => grid.appendChild(gameCard(g)));
@@ -50844,9 +50861,8 @@ function renderMovies(query = "") {
   const empty = document.getElementById("movies-empty")!;
   grid.innerHTML = "";
   const q = query.trim().toLowerCase();
-  const filtered = q
-    ? MOVIES.filter((m) => m.title.toLowerCase().includes(q))
-    : MOVIES;
+  const base = q ? MOVIES.filter((m) => m.title.toLowerCase().includes(q)) : MOVIES;
+  const filtered = applySortMedia(base, movieSort);
   empty.hidden = filtered.length > 0;
   filtered.forEach((m) => grid.appendChild(movieCard(m)));
 }
@@ -50856,9 +50872,8 @@ function renderShows(query = "") {
   const empty = document.getElementById("shows-empty")!;
   grid.innerHTML = "";
   const q = query.trim().toLowerCase();
-  const filtered = q
-    ? SHOWS.filter((s) => s.title.toLowerCase().includes(q))
-    : SHOWS;
+  const base = q ? SHOWS.filter((s) => s.title.toLowerCase().includes(q)) : SHOWS;
+  const filtered = applySortMedia(base, showSort);
   empty.hidden = filtered.length > 0;
   filtered.forEach((s) => grid.appendChild(showCard(s)));
 }
@@ -51397,25 +51412,46 @@ function bindSettings() {
    Search
    ============================================================ */
 
+const SORT_OPTIONS = [
+  { value: "default", label: "Default" },
+  { value: "popularity", label: "Sort by Popularity" },
+  { value: "release", label: "Sort by Release Date" },
+];
+
 function initSearch() {
-  (
-    document.getElementById("games-search") as HTMLInputElement
-  ).addEventListener("input", (e) => {
+  const gSearch = document.getElementById("games-search") as HTMLInputElement;
+  const mSearch = document.getElementById("movies-search") as HTMLInputElement;
+  const sSearch = document.getElementById("shows-search") as HTMLInputElement | null;
+
+  gSearch.addEventListener("input", (e) => {
     renderGames((e.target as HTMLInputElement).value);
   });
-  (
-    document.getElementById("movies-search") as HTMLInputElement
-  ).addEventListener("input", (e) => {
+  mSearch.addEventListener("input", (e) => {
     renderMovies((e.target as HTMLInputElement).value);
   });
-  const showsSearch = document.getElementById(
-    "shows-search",
-  ) as HTMLInputElement | null;
-  if (showsSearch) {
-    showsSearch.addEventListener("input", (e) => {
+  if (sSearch) {
+    sSearch.addEventListener("input", (e) => {
       renderShows((e.target as HTMLInputElement).value);
     });
   }
+
+  const gameSortEl = createCustomSelect(SORT_OPTIONS, "default", (val) => {
+    gameSort = val as SortMode;
+    renderGames(gSearch.value);
+  });
+  document.getElementById("games-sort-wrap")?.appendChild(gameSortEl);
+
+  const movieSortEl = createCustomSelect(SORT_OPTIONS, "default", (val) => {
+    movieSort = val as SortMode;
+    renderMovies(mSearch.value);
+  });
+  document.getElementById("movies-sort-wrap")?.appendChild(movieSortEl);
+
+  const showSortEl = createCustomSelect(SORT_OPTIONS, "default", (val) => {
+    showSort = val as SortMode;
+    renderShows(sSearch?.value || "");
+  });
+  document.getElementById("shows-sort-wrap")?.appendChild(showSortEl);
 }
 
 /* ============================================================

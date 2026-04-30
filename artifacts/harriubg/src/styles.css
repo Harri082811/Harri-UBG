@@ -374,6 +374,20 @@ main {
 }
 .page-sub { color: var(--text-dim); margin: 0; }
 
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.search-row .csel { min-width: 180px; }
+.search-row .csel-trigger {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+}
 .search {
   display: flex;
   align-items: center;
