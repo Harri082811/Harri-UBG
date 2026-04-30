@@ -85,27 +85,21 @@ function saveSettings(s: Settings) {
 let settings = loadSettings();
 
 /* ============================================================
-   GAMES — fetched from gn-math (covers + html) with multi-file
-   fallback to harriwalk0/assets for Unity/Flash games.
+   GAMES — fetched from gn-math GitHub Pages (no CDN size limits).
+   Single-file: gn-math.github.io/html/<file>.html
+   Multi-file:  gn-math.github.io/assets/<id>/index.html
    ============================================================ */
 
-// IDs that have a richer multi-file build in harriwalk0/assets/<id>/index.html
+// IDs served as multi-file builds at gn-math.github.io/assets/<id>/index.html
 const MULTI_FILE_IDS = new Set<number>([
   113, 116, 118, 120, 121, 122, 123, 124, 129, 165, 198, 199, 200, 255, 256,
   258, 260, 294, 296, 302, 306, 307, 308, 309, 310, 311, 315, 317, 318, 330,
   346, 347, 352, 434, 441, 442, 447,
-  // additional multi-file games
-  350, 351, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365,
-  366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 380, 381,
-  400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414,
-  415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429,
-  430, 435, 436, 437, 438, 439, 440, 443, 444, 445, 446, 448, 449, 450, 451,
-  452, 453, 454, 455, 456, 457, 458, 459, 460,
 ]);
 
-const HARRI_BASE = "https://cdn.jsdelivr.net/gh/harriwalk0/assets@main";
+const HARRI_BASE = "https://gn-math.github.io/assets";
 const COVERS_BASE = "https://raw.githubusercontent.com/gn-math/covers/main";
-const GAMES_BASE = "https://raw.githubusercontent.com/gn-math/html/main";
+const GAMES_BASE = "https://gn-math.github.io/html";
 const ZONES_URL =
   "https://raw.githubusercontent.com/harriwalk0/assets/main/zones.json";
 
@@ -113,10 +107,18 @@ let GAMES: Game[] = [];
 let MOVIES: Movie[] = [];
 let SHOWS: Show[] = [];
 
-// Games whose HTML file does not exist in the gn-math/html repo
+// Games with no working source on gn-math.github.io
 const BROKEN_GAME_IDS = new Set<number>([
+  // single-file games missing from gn-math/html repo
   1, 27, 34, 44, 64, 65, 67, 75, 76, 82, 85, 90, 112, 114, 117, 179,
-  212, 213, 214, 253, 265, 266, 429, 502, 520, 589, 590, 591, 593, 615,
+  212, 213, 214, 253, 265, 266, 502, 520, 589, 590, 591, 593, 615,
+  // multi-file games not present in gn-math/assets (only in harriwalk0 CDN which has size limits)
+  350, 351, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364,
+  365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378,
+  380, 381, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411,
+  412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425,
+  426, 427, 428, 429, 430, 435, 436, 437, 438, 439, 440, 443, 444, 445,
+  446, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460,
 ]);
 
 const ADULT_KEYWORDS =
@@ -50375,8 +50377,8 @@ async function cloakGameHtml(g: Game): Promise<string> {
     const res = await fetch(g.url, { cache: "force-cache" });
     if (!res.ok) throw new Error(`fetch ${g.url} -> ${res.status}`);
     let html = await res.text();
-    // For multi-file games hosted on harriwalk0/assets, the embedded base href
-    // points at a 403'd fork — rewrite it to the working CDN.
+    // For multi-file games, inject/rewrite <base href> so all relative asset
+    // paths resolve correctly against gn-math.github.io/assets/<id>/.
     if (g.multiFile) {
       const goodBase = `${HARRI_BASE}/${g.id}/`;
       if (/<base\s[^>]*href=/i.test(html)) {
