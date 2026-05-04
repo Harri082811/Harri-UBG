@@ -84,13 +84,6 @@ function saveSettings(s: Settings) {
 
 let settings = loadSettings();
 
-/* ============================================================
-   GAMES — fetched from gn-math GitHub Pages (no CDN size limits).
-   Single-file: gn-math.github.io/html/<file>.html
-   Multi-file:  gn-math.github.io/assets/<id>/index.html
-   ============================================================ */
-
-// IDs served as multi-file builds at gn-math.github.io/assets/<id>/index.html
 const MULTI_FILE_IDS = new Set<number>([
   113, 116, 118, 120, 121, 122, 123, 124, 129, 165, 198, 199, 200, 255, 256,
   258, 260, 294, 296, 302, 306, 307, 308, 309, 310, 311, 315, 317, 318, 330,
@@ -110,15 +103,16 @@ let SHOWS: Show[] = [];
 // Games with no working source on gn-math.github.io
 const BROKEN_GAME_IDS = new Set<number>([
   // single-file games missing from gn-math/html repo
-  1, 27, 34, 44, 64, 65, 67, 75, 76, 82, 85, 90, 112, 114, 117, 179,
-  212, 213, 214, 253, 265, 266, 502, 520, 589, 590, 591, 593, 615,
+  1, 27, 34, 44, 64, 65, 67, 75, 76, 82, 85, 90, 112, 114, 117, 179, 212, 213,
+  214, 253, 265, 266, 502, 520, 589, 590, 591, 593, 615,
   // multi-file games not present in gn-math/assets (only in harriwalk0 CDN which has size limits)
-  350, 351, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364,
-  365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378,
-  380, 381, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411,
-  412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425,
-  426, 427, 428, 429, 430, 435, 436, 437, 438, 439, 440, 443, 444, 445,
-  446, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460,
+  350,
+  351, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366,
+  367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 380, 381, 400,
+  401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415,
+  416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430,
+  435, 436, 437, 438, 439, 440, 443, 444, 445, 446, 448, 449, 450, 451, 452,
+  453, 454, 455, 456, 457, 458, 459, 460,
 ]);
 
 const ADULT_KEYWORDS =
@@ -138,7 +132,9 @@ async function loadGames(): Promise<void> {
     }>;
 
     GAMES = zones
-      .filter((g) => g.id >= 0 && !/^\[/.test(g.name) && !BROKEN_GAME_IDS.has(g.id))
+      .filter(
+        (g) => g.id >= 0 && !/^\[/.test(g.name) && !BROKEN_GAME_IDS.has(g.id),
+      )
       .map((g) => {
         const isMulti = MULTI_FILE_IDS.has(g.id);
         // single-file game URLs come from {HTML_URL}/<filename>.html
@@ -50817,10 +50813,15 @@ function applySortGames(list: Game[]): Game[] {
   return [...list].sort((a, b) => a.name.localeCompare(b.name));
 }
 function applySortMedia<T extends { title: string; year: number }>(
-  list: T[], mode: SortMode,
+  list: T[],
+  mode: SortMode,
 ): T[] {
-  if (mode === "release") return [...list].sort((a, b) => b.year - a.year || a.title.localeCompare(b.title));
-  if (mode === "popularity") return [...list].sort((a, b) => a.title.localeCompare(b.title));
+  if (mode === "release")
+    return [...list].sort(
+      (a, b) => b.year - a.year || a.title.localeCompare(b.title),
+    );
+  if (mode === "popularity")
+    return [...list].sort((a, b) => a.title.localeCompare(b.title));
   return list;
 }
 
@@ -50841,7 +50842,9 @@ function renderGames(query = "") {
     return;
   }
 
-  const base = q ? GAMES.filter((g) => g.name.toLowerCase().includes(q)) : GAMES;
+  const base = q
+    ? GAMES.filter((g) => g.name.toLowerCase().includes(q))
+    : GAMES;
   const filtered = applySortGames(base);
 
   empty.hidden = filtered.length > 0;
@@ -50853,7 +50856,9 @@ function renderMovies(query = "") {
   const empty = document.getElementById("movies-empty")!;
   grid.innerHTML = "";
   const q = query.trim().toLowerCase();
-  const base = q ? MOVIES.filter((m) => m.title.toLowerCase().includes(q)) : MOVIES;
+  const base = q
+    ? MOVIES.filter((m) => m.title.toLowerCase().includes(q))
+    : MOVIES;
   const filtered = applySortMedia(base, movieSort);
   empty.hidden = filtered.length > 0;
   filtered.forEach((m) => grid.appendChild(movieCard(m)));
@@ -50864,7 +50869,9 @@ function renderShows(query = "") {
   const empty = document.getElementById("shows-empty")!;
   grid.innerHTML = "";
   const q = query.trim().toLowerCase();
-  const base = q ? SHOWS.filter((s) => s.title.toLowerCase().includes(q)) : SHOWS;
+  const base = q
+    ? SHOWS.filter((s) => s.title.toLowerCase().includes(q))
+    : SHOWS;
   const filtered = applySortMedia(base, showSort);
   empty.hidden = filtered.length > 0;
   filtered.forEach((s) => grid.appendChild(showCard(s)));
@@ -51244,13 +51251,11 @@ const CLOAK_ICON_OPTIONS = [
     label: "Google Classroom",
   },
   { value: "https://www.khanacademy.org/favicon.ico", label: "Khan Academy" },
-  { value: "https://www.canvas.net/favicon.ico", label: "Canvas" },
   {
     value: "https://www.wikipedia.org/static/favicon/wikipedia.ico",
     label: "Wikipedia",
   },
-  { value: "https://mail.google.com/favicon.ico", label: "Gmail" },
-  { value: "https://docs.google.com/favicon.ico", label: "Google Docs" },
+  { value: "https://docs.google.com/favicon.ico", label: "Google Drive" },
 ];
 
 const SERVER_OPTIONS = [
@@ -51413,7 +51418,9 @@ const SORT_OPTIONS = [
 function initSearch() {
   const gSearch = document.getElementById("games-search") as HTMLInputElement;
   const mSearch = document.getElementById("movies-search") as HTMLInputElement;
-  const sSearch = document.getElementById("shows-search") as HTMLInputElement | null;
+  const sSearch = document.getElementById(
+    "shows-search",
+  ) as HTMLInputElement | null;
 
   gSearch.addEventListener("input", (e) => {
     renderGames((e.target as HTMLInputElement).value);
