@@ -51259,8 +51259,8 @@ const CLOAK_ICON_OPTIONS = [
 ];
 
 const SERVER_OPTIONS = [
-  { value: "vidsrc.cc", label: "Server 1" },
-  { value: "vidsrc.xyz", label: "Server 2 (recommended)" },
+  { value: "vidsrc.cc", label: "Server 1 (recommended)" },
+  { value: "vidsrc.xyz", label: "Server 2" },
   { value: "embed.su", label: "Server 3" },
   { value: "vidlink.pro", label: "Server 4" },
   { value: "2embed.cc", label: "Server 5" },
