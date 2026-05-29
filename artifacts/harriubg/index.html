@@ -181,40 +181,7 @@
               <input id="hero-proxy-input" type="text" placeholder="Search Google or enter any URL…" autocomplete="off" spellcheck="false" />
               <button id="hero-proxy-go" class="btn btn-primary btn-sm">Go →</button>
             </div>
-            <div class="home-shortcuts" id="home-shortcuts">
-              <button class="home-sc" data-br-url="https://www.google.com">
-                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=google.com&sz=32" width="20" height="20" alt="" /></span>
-                <span class="home-sc-label">Google</span>
-              </button>
-              <button class="home-sc" data-br-url="https://www.youtube.com">
-                <span class="home-sc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="#ff0000"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
-                <span class="home-sc-label">YouTube</span>
-              </button>
-              <button class="home-sc" data-br-url="https://wikipedia.org">
-                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=wikipedia.org&sz=32" width="20" height="20" alt="" /></span>
-                <span class="home-sc-label">Wikipedia</span>
-              </button>
-              <button class="home-sc" data-br-url="https://quizlet.com">
-                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=quizlet.com&sz=32" width="20" height="20" alt="" /></span>
-                <span class="home-sc-label">Quizlet</span>
-              </button>
-              <button class="home-sc" data-br-url="https://khanacademy.org">
-                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=khanacademy.org&sz=32" width="20" height="20" alt="" /></span>
-                <span class="home-sc-label">Khan Academy</span>
-              </button>
-              <button class="home-sc" data-br-url="https://coolmathgames.com">
-                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=coolmathgames.com&sz=32" width="20" height="20" alt="" /></span>
-                <span class="home-sc-label">Cool Math</span>
-              </button>
-              <button class="home-sc" data-br-url="https://scratch.mit.edu">
-                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=scratch.mit.edu&sz=32" width="20" height="20" alt="" /></span>
-                <span class="home-sc-label">Scratch</span>
-              </button>
-              <button class="home-sc" data-br-url="https://desmos.com/calculator">
-                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=desmos.com&sz=32" width="20" height="20" alt="" /></span>
-                <span class="home-sc-label">Desmos</span>
-              </button>
-            </div>
+            <div class="home-shortcuts" id="home-shortcuts"></div>
           </div>
 
           <div class="stats">
@@ -407,46 +374,13 @@
             ></iframe>
             <div class="br-welcome" id="br-welcome">
               <h2>Where do you want to go <span>today?</span></h2>
-              <div class="br-shortcuts">
-                <button class="br-shortcut" data-br-url="https://www.google.com">
-                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#4285f4,#34a853)">🔍</div>
-                  <span>Google</span>
-                </button>
-                <button class="br-shortcut" data-br-url="https://wikipedia.org">
-                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#555,#999)">📚</div>
-                  <span>Wikipedia</span>
-                </button>
-                <button class="br-shortcut" data-br-url="https://khanacademy.org">
-                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#14bf96,#1865f2)">🎓</div>
-                  <span>Khan Academy</span>
-                </button>
-                <button class="br-shortcut" data-br-url="https://quizlet.com">
-                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#4257b2,#6c8eff)">📝</div>
-                  <span>Quizlet</span>
-                </button>
-                <button class="br-shortcut" data-br-url="https://scratch.mit.edu">
-                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#ff8c1a,#ffab40)">🐱</div>
-                  <span>Scratch</span>
-                </button>
-                <button class="br-shortcut" data-br-url="https://desmos.com/calculator">
-                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#009fb7,#00c9e0)">📐</div>
-                  <span>Desmos</span>
-                </button>
-                <button class="br-shortcut" data-br-url="https://coolmathgames.com">
-                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#e84118,#f39c12)">🧮</div>
-                  <span>Cool Math</span>
-                </button>
-                <button class="br-shortcut" data-br-url="https://duolingo.com">
-                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#58cc02,#1cb0f6)">🦉</div>
-                  <span>Duolingo</span>
-                </button>
-              </div>
-              <p class="br-tip">Some sites block embedding — if a page won't load, use the "Open in New Tab" button to access it directly.</p>
+              <div class="br-shortcuts" id="br-shortcut-grid"></div>
+              <p class="br-tip">Some sites block embedding — use "Open in New Tab" if a page won't load.</p>
             </div>
             <div class="br-blocked" id="br-blocked">
-              <div class="br-blocked-icon">🚫</div>
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#6b7186"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
               <h3>Site blocked embedding</h3>
-              <p>This website refused to be displayed inside another page. Open it in a new tab to access it directly.</p>
+              <p>This site won't display inside another page. Open it directly in a new tab instead.</p>
               <button class="btn btn-primary" id="br-open-newtab">Open in New Tab</button>
             </div>
           </div>

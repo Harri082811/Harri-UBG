@@ -51434,6 +51434,109 @@ const DEFAULT_BOOKMARKS: Bookmark[] = [
 ];
 
 const BR_STORAGE = "harriubg.browser.v1";
+const HOME_SC_STORAGE = "harriubg.home-shortcuts.v1";
+
+type HomeShortcut = { url: string; title: string };
+
+const DEFAULT_HOME_SHORTCUTS: HomeShortcut[] = [
+  { url: "https://www.google.com", title: "Google" },
+  { url: "https://www.youtube.com", title: "YouTube" },
+  { url: "https://wikipedia.org", title: "Wikipedia" },
+  { url: "https://quizlet.com", title: "Quizlet" },
+];
+
+const BR_WELCOME_SHORTCUTS: HomeShortcut[] = [
+  { url: "https://www.google.com", title: "Google" },
+  { url: "https://wikipedia.org", title: "Wikipedia" },
+  { url: "https://khanacademy.org", title: "Khan" },
+  { url: "https://quizlet.com", title: "Quizlet" },
+  { url: "https://scratch.mit.edu", title: "Scratch" },
+  { url: "https://desmos.com/calculator", title: "Desmos" },
+  { url: "https://coolmathgames.com", title: "Cool Math" },
+  { url: "https://duolingo.com", title: "Duolingo" },
+];
+
+function loadHomeShortcuts(): HomeShortcut[] {
+  try {
+    const raw = localStorage.getItem(HOME_SC_STORAGE);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [...DEFAULT_HOME_SHORTCUTS];
+}
+
+function saveHomeShortcuts(shortcuts: HomeShortcut[]) {
+  try { localStorage.setItem(HOME_SC_STORAGE, JSON.stringify(shortcuts)); } catch {}
+}
+
+let homeShortcuts: HomeShortcut[] = loadHomeShortcuts();
+
+function renderHomeShortcuts() {
+  const container = document.getElementById("home-shortcuts");
+  if (!container) return;
+  container.innerHTML = "";
+
+  for (let i = 0; i < homeShortcuts.length; i++) {
+    const sc = homeShortcuts[i];
+    const btn = document.createElement("button");
+    btn.className = "home-sc";
+    const fav = `https://www.google.com/s2/favicons?domain=${new URL(sc.url).hostname}&sz=32`;
+    btn.innerHTML = `
+      <span class="home-sc-remove" title="Remove" data-idx="${i}">
+        <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </span>
+      <span class="home-sc-icon"><img src="${fav}" width="20" height="20" alt="" onerror="this.style.opacity='.4'" /></span>
+      <span class="home-sc-label">${escapeHtml(sc.title)}</span>
+    `;
+    btn.querySelector<HTMLElement>(".home-sc-remove")!.addEventListener("click", (e) => {
+      e.stopPropagation();
+      homeShortcuts.splice(i, 1);
+      saveHomeShortcuts(homeShortcuts);
+      renderHomeShortcuts();
+    });
+    btn.addEventListener("click", () => brNavigateTo(sc.url));
+    container.appendChild(btn);
+  }
+
+  const addBtn = document.createElement("button");
+  addBtn.className = "home-sc home-sc-add";
+  addBtn.innerHTML = `
+    <span class="home-sc-icon">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </span>
+    <span class="home-sc-label">Add</span>
+  `;
+  addBtn.addEventListener("click", () => {
+    const raw = prompt("Enter a URL to add as a shortcut:");
+    if (!raw) return;
+    const url = normBrUrl(raw);
+    if (!url) return;
+    let title = url;
+    try { title = new URL(url).hostname.replace(/^www\./, ""); } catch {}
+    homeShortcuts.push({ url, title });
+    saveHomeShortcuts(homeShortcuts);
+    renderHomeShortcuts();
+  });
+  container.appendChild(addBtn);
+}
+
+function renderBrWelcomeShortcuts() {
+  const grid = document.getElementById("br-shortcut-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  for (const sc of BR_WELCOME_SHORTCUTS) {
+    const btn = document.createElement("button");
+    btn.className = "br-shortcut";
+    const fav = `https://www.google.com/s2/favicons?domain=${new URL(sc.url).hostname}&sz=32`;
+    btn.innerHTML = `
+      <div class="br-shortcut-icon">
+        <img src="${fav}" width="24" height="24" alt="${escapeHtml(sc.title)}" onerror="this.style.opacity='.4'" />
+      </div>
+      <span>${escapeHtml(sc.title)}</span>
+    `;
+    btn.addEventListener("click", () => brNavigateTo(sc.url));
+    grid.appendChild(btn);
+  }
+}
 
 function loadBrowserState(): { bookmarks: Bookmark[] } {
   try {
@@ -51596,7 +51699,7 @@ function initBrowser() {
   });
 
   document.getElementById("br-back")?.addEventListener("click", () => {
-    frame?.contentWindow?.history.back();
+    try { frame?.contentWindow?.history.back(); } catch {}
   });
 
   document.getElementById("br-refresh")?.addEventListener("click", () => {
@@ -51623,7 +51726,12 @@ function initBrowser() {
     }
   });
 
+  let loadBlockTimer: ReturnType<typeof setTimeout> | null = null;
+  const blocked = document.getElementById("br-blocked");
+
   frame?.addEventListener("load", () => {
+    if (loadBlockTimer) { clearTimeout(loadBlockTimer); loadBlockTimer = null; }
+    blocked?.classList.remove("visible");
     try {
       const tabEntry = brTabs.find(t => t.id === brActiveId);
       if (tabEntry && frame.contentDocument) {
@@ -51634,8 +51742,23 @@ function initBrowser() {
   });
 
   document.getElementById("br-open-newtab")?.addEventListener("click", () => {
-    if (brBlockedUrl) window.open(brBlockedUrl, "_blank");
+    const url = (document.getElementById("br-url-input") as HTMLInputElement)?.value;
+    if (url && url !== "about:blank") window.open(url, "_blank");
   });
+
+  const origNavigate = brNavigateTo;
+  (window as any).__brNavHook = (url: string) => {
+    if (loadBlockTimer) clearTimeout(loadBlockTimer);
+    blocked?.classList.remove("visible");
+    loadBlockTimer = setTimeout(() => {
+      try {
+        if (!frame?.contentWindow || frame.src === "about:blank") return;
+        frame.contentWindow.document; // will throw if cross-origin blocked
+      } catch {
+        // cross-origin but still visible — not blocked, just sandboxed
+      }
+    }, 3500);
+  };
 
   // Hero proxy bar wires up to browser tab
   const heroInput = document.getElementById("hero-proxy-input") as HTMLInputElement;
@@ -51648,14 +51771,10 @@ function initBrowser() {
   heroInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") launchBr(); });
   heroGo?.addEventListener("click", launchBr);
 
-  // Shortcut tiles on welcome screen
-  document.querySelectorAll<HTMLElement>("[data-br-url]").forEach(el => {
-    el.addEventListener("click", () => brNavigateTo(el.dataset.brUrl!));
-  });
-
   brShowWelcome();
   renderBrTabs();
   renderBrBookmarks();
+  renderBrWelcomeShortcuts();
 }
 
 function initSearch() {
@@ -51724,6 +51843,7 @@ async function boot() {
   initModal();
   initSearch();
   initBrowser();
+  renderHomeShortcuts();
   bindSettings();
   renderFeatured();
   renderGames();
