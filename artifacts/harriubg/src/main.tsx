@@ -50435,99 +50435,11 @@ function rebuildStars() {
   }));
 }
 
-type PlanetDef = {
-  xf: number; yf: number; r: number;
-  body: string; atmo: string; dark: string;
-  ringColor?: string; ringW?: number;
-};
-
-const PLANET_DEFS: PlanetDef[] = [
-  { xf: 0.91, yf: 0.10, r: 38, body: "#9b5de5", atmo: "#c77dff", dark: "#3a0072", ringColor: "#c77dff55", ringW: 18 },
-  { xf: 0.06, yf: 0.72, r: 16, body: "#f3722c", atmo: "#f8961e", dark: "#7a1c00" },
-  { xf: 0.78, yf: 0.82, r: 24, body: "#4361ee", atmo: "#4cc9f0", dark: "#0d1b6e", ringColor: "#4cc9f044", ringW: 12 },
-  { xf: 0.15, yf: 0.20, r: 10, body: "#43aa8b", atmo: "#90e0ef", dark: "#004d40" },
-];
-
-function hexToRgb(hex: string): [number, number, number] {
-  const n = parseInt(hex.replace("#", ""), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-
-function drawPlanets(c: CanvasRenderingContext2D, w: number, h: number) {
-  c.save();
-  for (const p of PLANET_DEFS) {
-    const x = p.xf * w, y = p.yf * h;
-
-    // Outer atmospheric halo (very wide, very soft)
-    const [ar, ag, ab] = hexToRgb(p.atmo);
-    const halo = c.createRadialGradient(x, y, p.r * 0.5, x, y, p.r * 6);
-    halo.addColorStop(0, `rgba(${ar},${ag},${ab},0.22)`);
-    halo.addColorStop(0.4, `rgba(${ar},${ag},${ab},0.08)`);
-    halo.addColorStop(1, `rgba(${ar},${ag},${ab},0)`);
-    c.beginPath(); c.arc(x, y, p.r * 6, 0, Math.PI * 2);
-    c.fillStyle = halo; c.fill();
-
-    // Ring (behind planet body) — front half only uses a clip
-    if (p.ringColor && p.ringW) {
-      c.save();
-      c.translate(x, y); c.scale(1, 0.28);
-      c.beginPath(); c.arc(0, 0, p.r * 2.1, Math.PI, Math.PI * 2);
-      c.strokeStyle = p.ringColor; c.lineWidth = p.ringW; c.stroke();
-      c.restore();
-    }
-
-    // Planet body with surface shading
-    const [dr, dg, db] = hexToRgb(p.dark);
-    const [br, bg, bb] = hexToRgb(p.body);
-    const body = c.createRadialGradient(
-      x - p.r * 0.38, y - p.r * 0.35, p.r * 0.05,
-      x + p.r * 0.1,  y + p.r * 0.1,  p.r
-    );
-    body.addColorStop(0,    `rgba(${Math.min(255,ar+60)},${Math.min(255,ag+60)},${Math.min(255,ab+60)},0.95)`);
-    body.addColorStop(0.35, `rgba(${br},${bg},${bb},0.92)`);
-    body.addColorStop(0.75, `rgba(${Math.round(br*0.6)},${Math.round(bg*0.6)},${Math.round(bb*0.6)},0.88)`);
-    body.addColorStop(1,    `rgba(${dr},${dg},${db},0.95)`);
-    c.beginPath(); c.arc(x, y, p.r, 0, Math.PI * 2);
-    c.fillStyle = body; c.fill();
-
-    // Atmosphere rim glow
-    const rim = c.createRadialGradient(x, y, p.r * 0.72, x, y, p.r * 1.18);
-    rim.addColorStop(0,   `rgba(${ar},${ag},${ab},0)`);
-    rim.addColorStop(0.6, `rgba(${ar},${ag},${ab},0.18)`);
-    rim.addColorStop(1,   `rgba(${ar},${ag},${ab},0)`);
-    c.beginPath(); c.arc(x, y, p.r * 1.18, 0, Math.PI * 2);
-    c.fillStyle = rim; c.fill();
-
-    // Specular highlight
-    const spec = c.createRadialGradient(
-      x - p.r * 0.36, y - p.r * 0.34, 0,
-      x - p.r * 0.36, y - p.r * 0.34, p.r * 0.55
-    );
-    spec.addColorStop(0, "rgba(255,255,255,0.30)");
-    spec.addColorStop(0.5, "rgba(255,255,255,0.06)");
-    spec.addColorStop(1, "rgba(255,255,255,0)");
-    c.beginPath(); c.arc(x, y, p.r, 0, Math.PI * 2);
-    c.fillStyle = spec; c.fill();
-
-    // Ring front half (on top of planet)
-    if (p.ringColor && p.ringW) {
-      c.save();
-      c.translate(x, y); c.scale(1, 0.28);
-      c.beginPath(); c.arc(0, 0, p.r * 2.1, 0, Math.PI);
-      c.strokeStyle = p.ringColor; c.lineWidth = p.ringW; c.stroke();
-      c.restore();
-    }
-  }
-  c.restore();
-}
-
 function tick() {
   if (!ctx || !canvas) return;
   const w = window.innerWidth;
   const h = window.innerHeight;
   ctx.clearRect(0, 0, w, h);
-
-  drawPlanets(ctx, w, h);
 
   const starColor = getCssVar("--star") || "200, 220, 255";
 

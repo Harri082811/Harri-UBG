@@ -181,11 +181,39 @@
               <input id="hero-proxy-input" type="text" placeholder="Search Google or enter any URL…" autocomplete="off" spellcheck="false" />
               <button id="hero-proxy-go" class="btn btn-primary btn-sm">Go →</button>
             </div>
-            <div class="hero-quick">
-              <button class="quick-chip" data-go="games">🎮 Games</button>
-              <button class="quick-chip" data-go="movies">🎬 Movies</button>
-              <button class="quick-chip" data-go="shows">📺 Shows</button>
-              <button class="quick-chip" data-go="browser">🌐 Browser</button>
+            <div class="home-shortcuts" id="home-shortcuts">
+              <button class="home-sc" data-br-url="https://www.google.com">
+                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=google.com&sz=32" width="20" height="20" alt="" /></span>
+                <span class="home-sc-label">Google</span>
+              </button>
+              <button class="home-sc" data-br-url="https://www.youtube.com">
+                <span class="home-sc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="#ff0000"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></span>
+                <span class="home-sc-label">YouTube</span>
+              </button>
+              <button class="home-sc" data-br-url="https://wikipedia.org">
+                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=wikipedia.org&sz=32" width="20" height="20" alt="" /></span>
+                <span class="home-sc-label">Wikipedia</span>
+              </button>
+              <button class="home-sc" data-br-url="https://quizlet.com">
+                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=quizlet.com&sz=32" width="20" height="20" alt="" /></span>
+                <span class="home-sc-label">Quizlet</span>
+              </button>
+              <button class="home-sc" data-br-url="https://khanacademy.org">
+                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=khanacademy.org&sz=32" width="20" height="20" alt="" /></span>
+                <span class="home-sc-label">Khan Academy</span>
+              </button>
+              <button class="home-sc" data-br-url="https://coolmathgames.com">
+                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=coolmathgames.com&sz=32" width="20" height="20" alt="" /></span>
+                <span class="home-sc-label">Cool Math</span>
+              </button>
+              <button class="home-sc" data-br-url="https://scratch.mit.edu">
+                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=scratch.mit.edu&sz=32" width="20" height="20" alt="" /></span>
+                <span class="home-sc-label">Scratch</span>
+              </button>
+              <button class="home-sc" data-br-url="https://desmos.com/calculator">
+                <span class="home-sc-icon"><img src="https://www.google.com/s2/favicons?domain=desmos.com&sz=32" width="20" height="20" alt="" /></span>
+                <span class="home-sc-label">Desmos</span>
+              </button>
             </div>
           </div>
 
@@ -413,7 +441,7 @@
                   <span>Duolingo</span>
                 </button>
               </div>
-              <p class="br-tip">💡 Tip: Some sites block embedding — if a site won't load, try opening it in a new tab from here.</p>
+              <p class="br-tip">Some sites block embedding — if a page won't load, use the "Open in New Tab" button to access it directly.</p>
             </div>
             <div class="br-blocked" id="br-blocked">
               <div class="br-blocked-icon">🚫</div>
