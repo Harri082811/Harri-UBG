@@ -1334,8 +1334,8 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
+  gap: 5px;
+  padding: 8px 10px;
   border-radius: 12px;
   background: rgba(255,255,255,.04);
   border: 1px solid var(--border);
@@ -1345,7 +1345,9 @@ main {
   cursor: pointer;
   transition: background .15s, color .15s, border-color .15s, transform .15s;
   white-space: nowrap;
-  min-width: 60px;
+  min-width: 52px;
+  max-width: 72px;
+  width: 72px;
 }
 .home-sc:hover {
   background: rgba(255,255,255,.09);

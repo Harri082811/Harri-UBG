@@ -51653,6 +51653,10 @@ function brOpenTab(url: string) {
   if (url) brSwitchTab(id); else brShowWelcome();
 }
 
+function brProxyUrl(url: string): string {
+  return `/api/proxy?url=${encodeURIComponent(url)}`;
+}
+
 function brNavigateTo(rawUrl: string) {
   const url = normBrUrl(rawUrl);
   if (!url) return;
@@ -51663,7 +51667,7 @@ function brNavigateTo(rawUrl: string) {
   const welcome = document.getElementById("br-welcome");
   if (welcome) welcome.style.display = "none";
   const frame = document.getElementById("br-frame") as HTMLIFrameElement;
-  if (frame) { frame.style.display = "block"; frame.src = url; }
+  if (frame) { frame.style.display = "block"; frame.src = brProxyUrl(url); }
   setTab("browser");
   if (!brActiveId || !brTabs.find(t => t.id === brActiveId)) {
     brOpenTab(url);
