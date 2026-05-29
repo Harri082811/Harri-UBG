@@ -4,7 +4,7 @@ import "./styles.css";
    harriubg — vanilla TypeScript app
    ============================================================ */
 
-type Tab = "home" | "games" | "movies" | "shows" | "settings";
+type Tab = "home" | "games" | "movies" | "shows" | "settings" | "browser";
 
 type Game = {
   id: number;
@@ -50435,11 +50435,47 @@ function rebuildStars() {
   }));
 }
 
+const PLANET_DEFS = [
+  { xf: 0.88, yf: 0.12, r: 30, c1: "#7c3aed", c2: "#3b82f6", ring: true },
+  { xf: 0.07, yf: 0.76, r: 18, c1: "#f59e0b", c2: "#ef4444", ring: false },
+  { xf: 0.54, yf: 0.93, r: 22, c1: "#10b981", c2: "#06b6d4", ring: true },
+  { xf: 0.71, yf: 0.52, r: 9,  c1: "#a78bfa", c2: "#22d3ee", ring: false },
+];
+
+function drawPlanets(c: CanvasRenderingContext2D, w: number, h: number) {
+  c.save();
+  for (const p of PLANET_DEFS) {
+    const x = p.xf * w, y = p.yf * h;
+    const gl = c.createRadialGradient(x, y, 0, x, y, p.r * 4);
+    gl.addColorStop(0, p.c1 + "28");
+    gl.addColorStop(1, "transparent");
+    c.beginPath(); c.arc(x, y, p.r * 4, 0, Math.PI * 2); c.fillStyle = gl; c.fill();
+    if (p.ring) {
+      c.save(); c.translate(x, y); c.scale(1, 0.32);
+      c.beginPath(); c.arc(0, 0, p.r * 1.75, 0, Math.PI * 2);
+      c.strokeStyle = p.c1 + "45"; c.lineWidth = p.r * 0.45; c.stroke();
+      c.restore();
+    }
+    const gr = c.createRadialGradient(x - p.r * 0.32, y - p.r * 0.32, 0, x, y, p.r);
+    gr.addColorStop(0, p.c1 + "d0"); gr.addColorStop(0.6, p.c2 + "b0"); gr.addColorStop(1, p.c2 + "60");
+    c.beginPath(); c.arc(x, y, p.r, 0, Math.PI * 2); c.fillStyle = gr; c.fill();
+    if (p.ring) {
+      c.save(); c.translate(x, y); c.scale(1, 0.32);
+      c.beginPath(); c.arc(0, 0, p.r * 1.75, 0, Math.PI);
+      c.strokeStyle = p.c2 + "55"; c.lineWidth = p.r * 0.45; c.stroke();
+      c.restore();
+    }
+  }
+  c.restore();
+}
+
 function tick() {
   if (!ctx || !canvas) return;
   const w = window.innerWidth;
   const h = window.innerHeight;
   ctx.clearRect(0, 0, w, h);
+
+  drawPlanets(ctx, w, h);
 
   const starColor = getCssVar("--star") || "200, 220, 255";
 
@@ -50637,7 +50673,7 @@ function initTabs() {
   });
 
   const initial = (location.hash.replace("#", "") || "home") as Tab;
-  if (["home", "games", "movies", "shows", "settings"].includes(initial))
+  if (["home", "games", "movies", "shows", "settings", "browser"].includes(initial))
     setTab(initial);
 }
 
@@ -51415,6 +51451,249 @@ const SORT_OPTIONS = [
   { value: "release", label: "Sort by Release Date" },
 ];
 
+/* ============================================================
+   Browser / Proxy tab
+   ============================================================ */
+
+type BrowserTabEntry = { id: string; url: string; title: string };
+type Bookmark = { url: string; title: string };
+
+const DEFAULT_BOOKMARKS: Bookmark[] = [
+  { url: "https://www.google.com", title: "Google" },
+  { url: "https://wikipedia.org", title: "Wikipedia" },
+  { url: "https://khanacademy.org", title: "Khan Academy" },
+  { url: "https://quizlet.com", title: "Quizlet" },
+  { url: "https://coolmathgames.com", title: "Cool Math" },
+  { url: "https://scratch.mit.edu", title: "Scratch" },
+  { url: "https://desmos.com", title: "Desmos" },
+  { url: "https://duolingo.com", title: "Duolingo" },
+];
+
+const BR_STORAGE = "harriubg.browser.v1";
+
+function loadBrowserState(): { bookmarks: Bookmark[] } {
+  try {
+    const raw = localStorage.getItem(BR_STORAGE);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { bookmarks: [...DEFAULT_BOOKMARKS] };
+}
+
+function saveBrowserState(bookmarks: Bookmark[]) {
+  try { localStorage.setItem(BR_STORAGE, JSON.stringify({ bookmarks })); } catch {}
+}
+
+let brTabs: BrowserTabEntry[] = [];
+let brActiveId = "";
+let brBookmarks: Bookmark[] = loadBrowserState().bookmarks;
+let brBlockedUrl = "";
+
+function brFaviconUrl(url: string): string {
+  try { return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=16`; } catch { return ""; }
+}
+
+function normBrUrl(raw: string): string {
+  raw = raw.trim();
+  if (!raw) return "";
+  if (raw.includes(" ") || (!raw.includes(".") && !raw.startsWith("http")))
+    return `https://www.google.com/search?q=${encodeURIComponent(raw)}`;
+  if (!/^https?:\/\//i.test(raw)) raw = "https://" + raw;
+  return raw;
+}
+
+function renderBrTabs() {
+  const strip = document.getElementById("br-tabstrip");
+  if (!strip) return;
+  strip.innerHTML = "";
+  for (const t of brTabs) {
+    const tab = document.createElement("button");
+    tab.className = "br-tab" + (t.id === brActiveId ? " active" : "");
+    const fav = brFaviconUrl(t.url);
+    tab.innerHTML = `${fav ? `<img src="${fav}" class="br-tab-fav" width="14" height="14" alt="" onerror="this.remove()">` : ""}` +
+      `<span class="br-tab-title">${escapeHtml(t.title || t.url || "New Tab")}</span>` +
+      `<span class="br-tab-close" title="Close">✕</span>`;
+    tab.querySelector(".br-tab-close")!.addEventListener("click", (e) => {
+      e.stopPropagation();
+      brTabs = brTabs.filter(x => x.id !== t.id);
+      if (brActiveId === t.id) brActiveId = brTabs[brTabs.length - 1]?.id ?? "";
+      if (brActiveId) brSwitchTab(brActiveId); else brShowWelcome();
+      renderBrTabs();
+    });
+    tab.addEventListener("click", () => brSwitchTab(t.id));
+    strip.appendChild(tab);
+  }
+  const add = document.createElement("button");
+  add.className = "br-newtab-strip";
+  add.title = "New tab";
+  add.textContent = "+";
+  add.addEventListener("click", () => brOpenTab(""));
+  strip.appendChild(add);
+}
+
+function renderBrBookmarks() {
+  const bar = document.getElementById("br-bookmarks");
+  if (!bar) return;
+  bar.innerHTML = "";
+  for (const bm of brBookmarks) {
+    const btn = document.createElement("button");
+    btn.className = "br-bm";
+    const fav = brFaviconUrl(bm.url);
+    btn.innerHTML = `${fav ? `<img src="${fav}" width="14" height="14" alt="" class="br-bm-favicon" onerror="this.remove()">` : ""}` +
+      `<span>${escapeHtml(bm.title)}</span>`;
+    btn.addEventListener("click", () => brNavigateTo(bm.url));
+    bar.appendChild(btn);
+  }
+}
+
+function brShowWelcome() {
+  const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+  const welcome = document.getElementById("br-welcome");
+  const blocked = document.getElementById("br-blocked");
+  if (frame) { frame.src = "about:blank"; frame.style.display = "none"; }
+  if (welcome) welcome.style.display = "flex";
+  if (blocked) blocked.classList.remove("visible");
+  const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
+  if (urlInput) urlInput.value = "";
+  updateBmToggle("");
+}
+
+function brSwitchTab(id: string) {
+  brActiveId = id;
+  const t = brTabs.find(x => x.id === id);
+  renderBrTabs();
+  if (!t) { brShowWelcome(); return; }
+  const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
+  if (urlInput) urlInput.value = t.url;
+  if (t.url) {
+    const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+    const welcome = document.getElementById("br-welcome");
+    const blocked = document.getElementById("br-blocked");
+    if (frame) { frame.style.display = "block"; frame.src = t.url; }
+    if (welcome) welcome.style.display = "none";
+    if (blocked) blocked.classList.remove("visible");
+  } else {
+    brShowWelcome();
+  }
+  updateBmToggle(t.url);
+}
+
+function brOpenTab(url: string) {
+  const id = Math.random().toString(36).slice(2);
+  const title = url ? (new URL(url.startsWith("http") ? url : "https://" + url).hostname || url) : "New Tab";
+  brTabs.push({ id, url, title });
+  brActiveId = id;
+  renderBrTabs();
+  if (url) brSwitchTab(id); else brShowWelcome();
+}
+
+function brNavigateTo(rawUrl: string) {
+  const url = normBrUrl(rawUrl);
+  if (!url) return;
+  const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
+  if (urlInput) urlInput.value = url;
+  const blocked = document.getElementById("br-blocked");
+  if (blocked) blocked.classList.remove("visible");
+  const welcome = document.getElementById("br-welcome");
+  if (welcome) welcome.style.display = "none";
+  const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+  if (frame) { frame.style.display = "block"; frame.src = url; }
+  setTab("browser");
+  if (!brActiveId || !brTabs.find(t => t.id === brActiveId)) {
+    brOpenTab(url);
+  } else {
+    const t = brTabs.find(t => t.id === brActiveId);
+    if (t) {
+      t.url = url;
+      try { t.title = new URL(url).hostname; } catch { t.title = url; }
+    }
+    renderBrTabs();
+  }
+  updateBmToggle(url);
+}
+
+function updateBmToggle(url: string) {
+  const btn = document.getElementById("br-bm-toggle");
+  if (!btn) return;
+  const isBookmarked = brBookmarks.some(b => b.url === url);
+  btn.classList.toggle("active", isBookmarked && !!url);
+  btn.title = isBookmarked ? "Remove bookmark" : "Bookmark this page";
+}
+
+function initBrowser() {
+  const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
+  const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+
+  urlInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") brNavigateTo(urlInput.value);
+  });
+
+  document.getElementById("br-go")?.addEventListener("click", () => {
+    if (urlInput) brNavigateTo(urlInput.value);
+  });
+
+  document.getElementById("br-back")?.addEventListener("click", () => {
+    frame?.contentWindow?.history.back();
+  });
+
+  document.getElementById("br-refresh")?.addEventListener("click", () => {
+    if (frame) { const src = frame.src; frame.src = "about:blank"; setTimeout(() => { frame.src = src; }, 50); }
+  });
+
+  document.getElementById("br-newtab")?.addEventListener("click", () => brOpenTab(""));
+
+  document.getElementById("br-bm-toggle")?.addEventListener("click", () => {
+    if (urlInput) {
+      const url = urlInput.value;
+      if (!url || url === "about:blank") return;
+      const idx = brBookmarks.findIndex(b => b.url === url);
+      if (idx >= 0) {
+        brBookmarks.splice(idx, 1);
+      } else {
+        let title = url;
+        try { title = new URL(url).hostname.replace("www.", ""); } catch {}
+        brBookmarks.push({ url, title });
+      }
+      saveBrowserState(brBookmarks);
+      renderBrBookmarks();
+      updateBmToggle(url);
+    }
+  });
+
+  frame?.addEventListener("load", () => {
+    try {
+      const tabEntry = brTabs.find(t => t.id === brActiveId);
+      if (tabEntry && frame.contentDocument) {
+        const t = frame.contentDocument.title;
+        if (t) { tabEntry.title = t; renderBrTabs(); }
+      }
+    } catch {}
+  });
+
+  document.getElementById("br-open-newtab")?.addEventListener("click", () => {
+    if (brBlockedUrl) window.open(brBlockedUrl, "_blank");
+  });
+
+  // Hero proxy bar wires up to browser tab
+  const heroInput = document.getElementById("hero-proxy-input") as HTMLInputElement;
+  const heroGo = document.getElementById("hero-proxy-go");
+  const launchBr = () => {
+    const url = normBrUrl(heroInput?.value ?? "");
+    if (url) brNavigateTo(url);
+    else setTab("browser");
+  };
+  heroInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") launchBr(); });
+  heroGo?.addEventListener("click", launchBr);
+
+  // Shortcut tiles on welcome screen
+  document.querySelectorAll<HTMLElement>("[data-br-url]").forEach(el => {
+    el.addEventListener("click", () => brNavigateTo(el.dataset.brUrl!));
+  });
+
+  brShowWelcome();
+  renderBrTabs();
+  renderBrBookmarks();
+}
+
 function initSearch() {
   const gSearch = document.getElementById("games-search") as HTMLInputElement;
   const mSearch = document.getElementById("movies-search") as HTMLInputElement;
@@ -51480,6 +51759,7 @@ async function boot() {
   initTabs();
   initModal();
   initSearch();
+  initBrowser();
   bindSettings();
   renderFeatured();
   renderGames();

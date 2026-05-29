@@ -25,6 +25,16 @@
       <div class="blob blob-4"></div>
       <div class="blob blob-5"></div>
     </div>
+    <div class="shooting-stars" aria-hidden="true">
+      <span class="ss" style="left:7%;  --dur:7s;  --delay:0.3s"></span>
+      <span class="ss" style="left:19%; --dur:10s; --delay:2.8s"></span>
+      <span class="ss" style="left:34%; --dur:6.5s;--delay:5.1s"></span>
+      <span class="ss" style="left:51%; --dur:12s; --delay:1.4s"></span>
+      <span class="ss" style="left:64%; --dur:8s;  --delay:7.2s"></span>
+      <span class="ss" style="left:79%; --dur:9.5s;--delay:3.6s"></span>
+      <span class="ss" style="left:91%; --dur:11s; --delay:9s"></span>
+      <span class="ss" style="left:43%; --dur:7.5s;--delay:11s"></span>
+    </div>
     <canvas id="constellation"></canvas>
 
     <header class="topbar">
@@ -119,6 +129,14 @@
           </svg>
           <span>Shows</span>
         </button>
+        <button class="tab" data-tab="browser">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M2 12h20"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          <span>Browser</span>
+        </button>
         <button class="tab" data-tab="settings">
           <svg
             viewBox="0 0 24 24"
@@ -148,63 +166,27 @@
         <div class="hero">
           <div class="hero-eyebrow">welcome back!</div>
           <h1 class="hero-title">
-            Play, watch<br />
-            <span class="grad">An entire arcade in your browser.</span>
+            Browse free,<br />
+            <span class="grad">play anything.</span>
           </h1>
           <p class="hero-sub">
-            Hundreds of unbl0cked gam3s, a full movie library, and thousands of
-            TV shows — running entirely in your browser, with nothing to
-            install. Built for boredom, designed for speed.
+            Unbl0cked browser · gam3s · movies · shows — all in one place.
           </p>
-          <div class="hero-cta">
-            <button class="btn btn-primary" data-go="games">
-              <svg
-                viewBox="0 0 24 24"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M5 3l14 9-14 9V3z" />
+
+          <div class="hero-proxy">
+            <div class="hero-proxy-bar">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="proxy-icon">
+                <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
               </svg>
-              Browse games
-            </button>
-            <button class="btn btn-ghost" data-go="movies">
-              <svg
-                viewBox="0 0 24 24"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect x="2" y="4" width="20" height="16" rx="2" />
-                <path d="M2 9h20" />
-              </svg>
-              Watch movies
-            </button>
-            <button class="btn btn-ghost" data-go="shows">
-              <svg
-                viewBox="0 0 24 24"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect x="2" y="3" width="20" height="14" rx="2" />
-                <path d="M8 21h8" />
-                <path d="M12 17v4" />
-              </svg>
-              Watch shows
-            </button>
+              <input id="hero-proxy-input" type="text" placeholder="Search Google or enter any URL…" autocomplete="off" spellcheck="false" />
+              <button id="hero-proxy-go" class="btn btn-primary btn-sm">Go →</button>
+            </div>
+            <div class="hero-quick">
+              <button class="quick-chip" data-go="games">🎮 Games</button>
+              <button class="quick-chip" data-go="movies">🎬 Movies</button>
+              <button class="quick-chip" data-go="shows">📺 Shows</button>
+              <button class="quick-chip" data-go="browser">🌐 Browser</button>
+            </div>
           </div>
 
           <div class="stats">
@@ -364,6 +346,85 @@
         </div>
       </section>
 
+      <!-- BROWSER -->
+      <section class="view" id="view-browser">
+        <div class="browser-wrap">
+          <div class="browser-chrome">
+            <div class="browser-urlrow">
+              <button class="br-nav-btn" id="br-back" title="Back">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+              <button class="br-nav-btn" id="br-refresh" title="Refresh">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              </button>
+              <div class="br-url-bar">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <input id="br-url-input" type="text" placeholder="Search Google or enter a URL…" autocomplete="off" spellcheck="false" />
+              </div>
+              <button class="br-bookmark-btn" id="br-bm-toggle" title="Bookmark this page">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              </button>
+              <button class="br-nav-btn" id="br-newtab" title="New tab" style="font-size:18px;font-weight:700;color:var(--text)">+</button>
+            </div>
+            <div class="br-tabstrip" id="br-tabstrip"></div>
+            <div class="br-bookmarks" id="br-bookmarks"></div>
+          </div>
+          <div class="browser-viewport">
+            <iframe
+              id="br-frame"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-pointer-lock"
+              referrerpolicy="no-referrer"
+              allow="fullscreen; autoplay"
+              style="display:none"
+            ></iframe>
+            <div class="br-welcome" id="br-welcome">
+              <h2>Where do you want to go <span>today?</span></h2>
+              <div class="br-shortcuts">
+                <button class="br-shortcut" data-br-url="https://www.google.com">
+                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#4285f4,#34a853)">🔍</div>
+                  <span>Google</span>
+                </button>
+                <button class="br-shortcut" data-br-url="https://wikipedia.org">
+                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#555,#999)">📚</div>
+                  <span>Wikipedia</span>
+                </button>
+                <button class="br-shortcut" data-br-url="https://khanacademy.org">
+                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#14bf96,#1865f2)">🎓</div>
+                  <span>Khan Academy</span>
+                </button>
+                <button class="br-shortcut" data-br-url="https://quizlet.com">
+                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#4257b2,#6c8eff)">📝</div>
+                  <span>Quizlet</span>
+                </button>
+                <button class="br-shortcut" data-br-url="https://scratch.mit.edu">
+                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#ff8c1a,#ffab40)">🐱</div>
+                  <span>Scratch</span>
+                </button>
+                <button class="br-shortcut" data-br-url="https://desmos.com/calculator">
+                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#009fb7,#00c9e0)">📐</div>
+                  <span>Desmos</span>
+                </button>
+                <button class="br-shortcut" data-br-url="https://coolmathgames.com">
+                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#e84118,#f39c12)">🧮</div>
+                  <span>Cool Math</span>
+                </button>
+                <button class="br-shortcut" data-br-url="https://duolingo.com">
+                  <div class="br-shortcut-icon" style="background:linear-gradient(135deg,#58cc02,#1cb0f6)">🦉</div>
+                  <span>Duolingo</span>
+                </button>
+              </div>
+              <p class="br-tip">💡 Tip: Some sites block embedding — if a site won't load, try opening it in a new tab from here.</p>
+            </div>
+            <div class="br-blocked" id="br-blocked">
+              <div class="br-blocked-icon">🚫</div>
+              <h3>Site blocked embedding</h3>
+              <p>This website refused to be displayed inside another page. Open it in a new tab to access it directly.</p>
+              <button class="btn btn-primary" id="br-open-newtab">Open in New Tab</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- SETTINGS -->
       <section class="view" id="view-settings">
         <div class="page-head">
@@ -406,6 +467,18 @@
                   style="background: linear-gradient(135deg, #94a3b8, #475569)"
                 ></span
                 ><b>Midnight</b>
+              </button>
+              <button class="swatch" data-theme="nebula" title="Nebula">
+                <span
+                  style="background: linear-gradient(135deg, #e879f9, #818cf8)"
+                ></span
+                ><b>Nebula</b>
+              </button>
+              <button class="swatch" data-theme="neon" title="Neon">
+                <span
+                  style="background: linear-gradient(135deg, #00ff87, #60efff)"
+                ></span
+                ><b>Neon</b>
               </button>
             </div>
           </div>
