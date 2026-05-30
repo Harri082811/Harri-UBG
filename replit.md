@@ -1,63 +1,45 @@
-# Workspace
+# [Project name]
 
-## Overview
+_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+## Run & Operate
+
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm run typecheck` — full typecheck across all packages
+- `pnpm run build` — typecheck + build all packages
+- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
+- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- pnpm workspaces, Node.js 24, TypeScript 5.9
+- API: Express 5
+- DB: PostgreSQL + Drizzle ORM
+- Validation: Zod (`zod/v4`), `drizzle-zod`
+- API codegen: Orval (from OpenAPI spec)
+- Build: esbuild (CJS bundle)
 
-## Key Commands
+## Where things live
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+## Architecture decisions
 
-## Artifacts
+_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
 
-- **harriubg** (`artifacts/harriubg`) — vanilla HTML/CSS/JS unblocked games, movies, and TV
-  hub served at `/`. Single-page app with Home / Games / Movies / Shows / Settings tabs
-  and an always-on constellation background. Theme-aware brand SVG + favicon driven by
-  CSS `--accent-1`/`--accent-2`. Stats: 684 games · 4147 movies · 3000 shows.
-  - **Shows (3000)**: TMDB-popular TV catalog baked into `SHOW_LIST` in `main.tsx`
-    (no runtime catalog calls). Per-show season/episode metadata fetched lazily from
-    TMDB on open and cached in `localStorage` under `harriubg.shows.v1`. Modal exposes
-    a season + episode dropdown plus a numeric fallback in `#episode-row`. Streaming
-    via `buildShowEmbedUrl` over vidsrc.cc / xyz / embed.su / vidlink.pro / 2embed.cc
-    TV variants, switchable from the same server-row used for movies.
-  - **Games (~685)**: manifest from `harriwalk0/assets/zones.json`. Game HTML loaded from
-    `raw.githubusercontent.com/gn-math/html` (single-file games, all 685 entries) and
-    wrapped in a `text/html` Blob URL for cloaking. A small `MULTI_FILE_IDS` set prefers
-    the richer multi-file builds in `harriwalk0/assets/<id>/index.html` for ~38 games
-    (Unity / Flash titles). Covers from `raw.githubusercontent.com/gn-math/covers`.
-  - **Movies (36)**: curated TMDB IDs. Posters fetched from TMDB v3 API at boot
-    (key in `main.tsx`) and cached in `localStorage` under `harriubg.posters.v1`.
-    Streaming via cineby-style provider switcher (vidsrc.cc, vidsrc.xyz, embed.su,
-    vidlink.pro, 2embed.cc), each wrapped in a Blob URL.
-  - **Movie catalog**: 1500 titles baked into `MOVIE_LIST` with their TMDB
-    `poster_path` included, so posters render instantly with no runtime API calls
-    (avoids TMDB rate limits). The `loadPosters` helper just expands paths to
-    full image URLs at boot.
-  - **Settings**: theme (cosmic / aurora / sunset / midnight), tab cloak (title + icon),
-    open-in-about:blank, autoplay toggle, default streaming server. Constellation
-    customization removed — always on at sensible defaults.
-  - All cards use `<img onerror>` to fall back to a deterministic gradient placeholder
-    so missing covers/posters never look broken.
-  - **Vercel deployment**: `vercel.json` at repo root limits Vercel to building only
-    `@workspace/harriubg` (`pnpm --filter @workspace/harriubg run build`) with output at
-    `artifacts/harriubg/dist/public`. The harriubg `vite.config.ts` falls back to default
-    PORT/BASE_PATH when those env vars are absent (build-time only — Replit dev still
-    uses them).
+## Product
+
+_Describe the high-level user-facing capabilities of this app once they exist._
+
+## User preferences
+
+_Populate as you build — explicit user instructions worth remembering across sessions._
+
+## Gotchas
+
+_Populate as you build — sharp edges, "always run X before Y" rules._
+
+## Pointers
+
+- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
