@@ -51702,7 +51702,7 @@ function initBrClock() {
     }
   };
   tick();
-  setInterval(tick, 30000);
+  setInterval(tick, 10000);
 }
 
 function initBrWelcomeSearch() {
@@ -51901,7 +51901,7 @@ async function brNavigateTo(rawUrl: string) {
         await navigator.serviceWorker.ready;
       } catch {}
     }
-    frame.src = url;
+    frame.src = `/uv/service/${encodeURIComponent(url)}`;
   }
 }
 
@@ -51935,7 +51935,7 @@ function initBrowser() {
     if (frame) {
       const tab = brTabs.find((t) => t.id === brActiveId);
       if (tab?.url) {
-        frame.src = tab.url;
+        frame.src = `/uv/service/${encodeURIComponent(tab.url)}`;
       } else {
         const src = frame.src;
         frame.src = "about:blank";
@@ -52120,6 +52120,10 @@ function showToast(msg: string) {
    ============================================================ */
 
 async function boot() {
+  // Register service worker for UV proxy
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/uv.sw.js").catch(() => {});
+  }
   applyTheme();
   applyCloak();
   applyBgEffects();
