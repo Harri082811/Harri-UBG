@@ -50621,6 +50621,7 @@ function setTab(tab: Tab) {
   document.querySelectorAll<HTMLElement>(".view").forEach((v) => {
     v.classList.toggle("active", v.id === `view-${tab}`);
   });
+  document.body.classList.toggle("br-active", tab === "browser");
   window.scrollTo({ top: 0, behavior: "smooth" });
   history.replaceState(null, "", `#${tab}`);
 }
@@ -51653,10 +51654,6 @@ function brOpenTab(url: string) {
   if (url) brSwitchTab(id); else brShowWelcome();
 }
 
-function brProxyUrl(url: string): string {
-  return `/api/proxy?url=${encodeURIComponent(url)}`;
-}
-
 function brNavigateTo(rawUrl: string) {
   const url = normBrUrl(rawUrl);
   if (!url) return;
@@ -51667,7 +51664,7 @@ function brNavigateTo(rawUrl: string) {
   const welcome = document.getElementById("br-welcome");
   if (welcome) welcome.style.display = "none";
   const frame = document.getElementById("br-frame") as HTMLIFrameElement;
-  if (frame) { frame.style.display = "block"; frame.src = brProxyUrl(url); }
+  if (frame) { frame.style.display = "block"; frame.src = `/uv/service/${encodeURIComponent(url)}`; }
   setTab("browser");
   if (!brActiveId || !brTabs.find(t => t.id === brActiveId)) {
     brOpenTab(url);
@@ -51707,7 +51704,14 @@ function initBrowser() {
   });
 
   document.getElementById("br-refresh")?.addEventListener("click", () => {
-    if (frame) { const src = frame.src; frame.src = "about:blank"; setTimeout(() => { frame.src = src; }, 50); }
+    if (frame) {
+      const tab = brTabs.find(t => t.id === brActiveId);
+      if (tab?.url) {
+        frame.src = `/uv/service/${encodeURIComponent(tab.url)}`;
+      } else {
+        const src = frame.src; frame.src = "about:blank"; setTimeout(() => { frame.src = src; }, 50);
+      }
+    }
   });
 
   document.getElementById("br-newtab")?.addEventListener("click", () => brOpenTab(""));
@@ -51746,9 +51750,12 @@ function initBrowser() {
   });
 
   document.getElementById("br-open-newtab")?.addEventListener("click", () => {
-    const url = (document.getElementById("br-url-input") as HTMLInputElement)?.value;
+    const tab = brTabs.find(t => t.id === brActiveId);
+    const url = tab?.url || (document.getElementById("br-url-input") as HTMLInputElement)?.value;
     if (url && url !== "about:blank") window.open(url, "_blank");
   });
+
+  document.getElementById("br-exit")?.addEventListener("click", () => setTab("home"));
 
   const origNavigate = brNavigateTo;
   (window as any).__brNavHook = (url: string) => {
@@ -51839,6 +51846,11 @@ function showToast(msg: string) {
    ============================================================ */
 
 async function boot() {
+  // Register service worker for UV proxy
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/uv.sw.js", { scope: "/uv/" }).catch(() => {});
+  }
+
   applyTheme();
   applyCloak();
   applyBgEffects();

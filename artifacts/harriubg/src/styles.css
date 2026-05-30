@@ -1320,11 +1320,12 @@ main {
 }
 
 .home-shortcuts {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
   width: 100%;
-  max-width: 560px;
+  max-width: 420px;
+  justify-content: center;
 }
 @media (max-width: 480px) {
   .home-shortcuts { grid-template-columns: repeat(4, 1fr); gap: 5px; }
@@ -1404,6 +1405,24 @@ main {
 }
 @media (max-width: 720px) {
   #view-browser { margin: 0 -16px -80px; }
+}
+
+/* Full-screen browser mode — hides nav, fills entire viewport */
+body.br-active .topbar {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s;
+}
+body.br-active #view-browser {
+  position: fixed !important;
+  inset: 0 !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  z-index: 200;
+}
+.br-exit-btn {
+  color: var(--accent-1) !important;
+  flex-shrink: 0;
 }
 
 .browser-wrap {
