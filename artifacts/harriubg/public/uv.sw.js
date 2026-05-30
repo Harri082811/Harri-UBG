@@ -6,11 +6,14 @@ self.addEventListener('activate', evt => evt.waitUntil(clients.claim()));
 async function proxyReq(targetUrl, req) {
   const u = new URL(self.location.origin + '/api/proxy');
   u.searchParams.set('url', targetUrl);
-  const init = { method: req.method };
+  const init = { method: req.method, redirect: 'follow' };
   const headers = {};
   for (const [k, v] of req.headers) {
     const l = k.toLowerCase();
-    if (l !== 'host' && l !== 'origin' && l !== 'referer') headers[k] = v;
+    if (
+      l !== 'host' && l !== 'origin' && l !== 'referer' &&
+      !l.startsWith('sec-fetch') && !l.startsWith('sec-ch')
+    ) headers[k] = v;
   }
   init.headers = headers;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -26,21 +29,28 @@ async function proxyReq(targetUrl, req) {
 self.addEventListener('fetch', evt => {
   const url = new URL(evt.request.url);
 
-  // /uv/service/encoded-url  → proxy the decoded URL
+  // /uv/service/<encoded-url>  → decode and proxy
   if (url.pathname.startsWith(PREFIX)) {
     let targetUrl;
     try {
       targetUrl = decodeURIComponent(url.pathname.slice(PREFIX.length));
-      new URL(targetUrl);
+      if (url.search) targetUrl += url.search;
+      new URL(targetUrl); // validate
     } catch { return; }
     evt.respondWith(proxyReq(targetUrl, evt.request));
     return;
   }
 
-  // Cross-origin sub-resources from a proxied page → proxy them
-  if (url.origin !== self.location.origin) {
-    evt.respondWith(proxyReq(url.href, evt.request));
-    return;
+  // Cross-origin sub-resources requested FROM a proxied page → proxy them too
+  const ref = evt.request.referrer;
+  if (ref && url.origin !== self.location.origin) {
+    try {
+      const refUrl = new URL(ref);
+      if (refUrl.pathname.startsWith(PREFIX)) {
+        evt.respondWith(proxyReq(url.href, evt.request));
+        return;
+      }
+    } catch {}
   }
-  // Same-origin (our API, assets, etc.) → pass through
+  // Everything else: pass through normally
 });

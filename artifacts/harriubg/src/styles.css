@@ -109,6 +109,9 @@ body {
   font-size: 20px;
   letter-spacing: -0.01em;
   transition: transform .2s;
+  margin-right: 14px;
+  padding-right: 18px;
+  border-right: 1px solid rgba(255,255,255,0.1);
 }
 .brand:hover { transform: translateY(-1px); }
 
@@ -1271,6 +1274,55 @@ main {
 }
 
 /* ============================================================
+   Hero greeting (animated glowing text)
+   ============================================================ */
+.hero-greeting {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-1);
+  text-shadow:
+    0 0 12px var(--accent-1),
+    0 0 28px var(--accent-1),
+    0 0 56px var(--accent-2);
+  animation: greet-float 3.6s ease-in-out infinite;
+  margin-top: 18px;
+  margin-bottom: 0;
+  min-height: 1.3em;
+  opacity: 0.92;
+  user-select: none;
+}
+
+@keyframes greet-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+/* ============================================================
+   Settings textarea
+   ============================================================ */
+.set-textarea {
+  width: 100%;
+  min-height: 90px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 12px 16px;
+  resize: vertical;
+  outline: none;
+  transition: border-color .2s;
+}
+.set-textarea:focus {
+  border-color: rgba(255,255,255,0.22);
+}
+.set-textarea::placeholder { color: var(--text-dim); }
+
+/* ============================================================
    Hero proxy bar
    ============================================================ */
 .hero-proxy {
@@ -1435,13 +1487,14 @@ body.br-active #view-browser {
 
 .browser-chrome {
   flex-shrink: 0;
-  background: rgba(7,7,15,.97);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  padding: 10px 14px 6px;
+  background: linear-gradient(180deg, rgba(10,8,22,0.98) 0%, rgba(7,5,18,0.99) 100%);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  padding: 10px 14px 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .browser-urlrow {
@@ -1483,6 +1536,20 @@ body.br-active #view-browser {
   border-color: var(--accent-1);
   box-shadow: 0 0 0 3px rgba(34,211,238,.12);
 }
+.br-favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.br-lock-icon {
+  color: rgba(255,255,255,0.25);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color .2s;
+}
 .br-url-bar svg { color: var(--text-faint); flex-shrink: 0; }
 .br-url-bar input {
   flex: 1;
@@ -1515,6 +1582,30 @@ body.br-active #view-browser {
 .br-bookmark-btn.active svg { fill: #fbbf24; }
 
 /* Tab strip */
+/* Loading progress bar */
+.br-progress {
+  height: 2px;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  opacity: 0;
+  border-radius: 0;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+.br-progress.loading {
+  width: 82%;
+  opacity: 1;
+  transition: width 2.8s cubic-bezier(0.06, 0.6, 0.25, 1), opacity 0.15s;
+}
+.br-progress.done {
+  width: 100%;
+  opacity: 0;
+  transition: width 0.15s ease, opacity 0.5s ease 0.15s;
+}
+
+/* Padding row below URL bar before tabstrip */
+.browser-urlrow { padding-bottom: 2px; }
+
 .br-tabstrip {
   display: flex;
   align-items: center;

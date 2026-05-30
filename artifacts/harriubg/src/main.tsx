@@ -48,6 +48,8 @@ type Settings = {
   server: string;
   showStars: boolean;
   showBlobs: boolean;
+  showShootingStars: boolean;
+  greetingPhrases: string;
 };
 
 const DEFAULT_SETTINGS: Settings = {
@@ -59,6 +61,8 @@ const DEFAULT_SETTINGS: Settings = {
   server: "vidsrc.cc",
   showStars: true,
   showBlobs: true,
+  showShootingStars: true,
+  greetingPhrases: "",
 };
 
 const STORAGE_KEY = "harriubg.settings.v2";
@@ -50406,9 +50410,7 @@ const SERVERS: Array<{ id: string; label: string }> = [
 
 type Star = { x: number; y: number; vx: number; vy: number; r: number };
 
-const STAR_DENSITY = 160;
-const STAR_SPEED = 1.0; // multiplier
-const LINK_DIST = 130;
+const STAR_DENSITY = 240;
 
 let canvas: HTMLCanvasElement | null = null;
 let ctx: CanvasRenderingContext2D | null = null;
@@ -50429,9 +50431,9 @@ function rebuildStars() {
   stars = new Array(STAR_DENSITY).fill(0).map(() => ({
     x: Math.random() * w,
     y: Math.random() * h,
-    vx: (Math.random() - 0.5) * 0.6,
-    vy: (Math.random() - 0.5) * 0.6,
-    r: Math.random() * 1.4 + 0.4,
+    vx: (Math.random() - 0.5) * 0.22,
+    vy: Math.random() * 0.32 + 0.1,
+    r: Math.random() * 1.1 + 0.2,
   }));
 }
 
@@ -50444,12 +50446,11 @@ function tick() {
   const starColor = getCssVar("--star") || "200, 220, 255";
 
   for (const s of stars) {
-    s.x += s.vx * STAR_SPEED;
-    s.y += s.vy * STAR_SPEED;
-    if (s.x < 0) s.x += w;
-    if (s.x > w) s.x -= w;
-    if (s.y < 0) s.y += h;
-    if (s.y > h) s.y -= h;
+    s.x += s.vx;
+    s.y += s.vy;
+    if (s.x < -5) s.x = w + 5;
+    if (s.x > w + 5) s.x = -5;
+    if (s.y > h + 5) { s.y = -5; s.x = Math.random() * w; }
 
     ctx.beginPath();
     ctx.fillStyle = `rgba(${starColor}, ${0.55 + s.r * 0.25})`;
@@ -50459,25 +50460,6 @@ function tick() {
     ctx.fill();
   }
   ctx.shadowBlur = 0;
-
-  for (let i = 0; i < stars.length; i++) {
-    for (let j = i + 1; j < stars.length; j++) {
-      const a = stars[i],
-        b = stars[j];
-      const dx = a.x - b.x;
-      const dy = a.y - b.y;
-      const d = Math.sqrt(dx * dx + dy * dy);
-      if (d < LINK_DIST) {
-        const alpha = (1 - d / LINK_DIST) * 0.18;
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(${starColor}, ${alpha})`;
-        ctx.lineWidth = 0.6;
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        ctx.stroke();
-      }
-    }
-  }
   rafId = requestAnimationFrame(tick);
 }
 
@@ -50593,6 +50575,8 @@ function applyBgEffects() {
     cancelAnimationFrame(rafId);
     rafId = 0;
   }
+  const ssEl = document.querySelector(".shooting-stars") as HTMLElement | null;
+  if (ssEl) ssEl.style.display = settings.showShootingStars !== false ? "" : "none";
 }
 
 function initConstellation() {
@@ -50614,6 +50598,37 @@ function initConstellation() {
    Tabs
    ============================================================ */
 
+const DEFAULT_GREETINGS = [
+  "Welcome back ✦",
+  "Let's play something",
+  "What are you watching?",
+  "Browse free, play anything",
+  "Ready to explore?",
+  "Your playground awaits",
+  "Glad you're here",
+  "What's on your mind?",
+  "Enjoy the ride",
+  "Good vibes only ✦",
+  "Play hard, browse free",
+  "Where to today?",
+];
+let lastGreetingIdx = -1;
+
+function rotateGreeting() {
+  const el = document.getElementById("hero-greeting");
+  if (!el) return;
+  const raw = (settings.greetingPhrases || "").trim();
+  const list = raw
+    ? raw.split("\n").map((l) => l.trim()).filter((l) => l.length > 0)
+    : DEFAULT_GREETINGS;
+  if (list.length === 0) return;
+  let idx: number;
+  do { idx = Math.floor(Math.random() * list.length); }
+  while (list.length > 1 && idx === lastGreetingIdx);
+  lastGreetingIdx = idx;
+  el.textContent = list[idx];
+}
+
 function setTab(tab: Tab) {
   document.querySelectorAll<HTMLButtonElement>(".tab").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.tab === tab);
@@ -50624,6 +50639,7 @@ function setTab(tab: Tab) {
   document.body.classList.toggle("br-active", tab === "browser");
   window.scrollTo({ top: 0, behavior: "smooth" });
   history.replaceState(null, "", `#${tab}`);
+  if (tab === "home") rotateGreeting();
 }
 
 function initTabs() {
@@ -51375,6 +51391,25 @@ function bindSettings() {
     });
   }
 
+  const sShootingStars = document.getElementById("set-shooting-stars") as HTMLInputElement | null;
+  if (sShootingStars) {
+    sShootingStars.checked = settings.showShootingStars !== false;
+    sShootingStars.addEventListener("change", () => {
+      settings.showShootingStars = sShootingStars.checked;
+      saveSettings(settings);
+      applyBgEffects();
+    });
+  }
+
+  const sGreetings = document.getElementById("set-greetings") as HTMLTextAreaElement | null;
+  if (sGreetings) {
+    sGreetings.value = settings.greetingPhrases || "";
+    sGreetings.addEventListener("input", () => {
+      settings.greetingPhrases = sGreetings.value;
+      saveSettings(settings);
+    });
+  }
+
   document.getElementById("set-reset")!.addEventListener("click", () => {
     settings = { ...DEFAULT_SETTINGS };
     saveSettings(settings);
@@ -51383,6 +51418,8 @@ function bindSettings() {
     sAutoplay.checked = settings.autoplay;
     if (sStars) sStars.checked = settings.showStars;
     if (sBlobs) sBlobs.checked = settings.showBlobs;
+    if (sShootingStars) sShootingStars.checked = settings.showShootingStars !== false;
+    if (sGreetings) sGreetings.value = settings.greetingPhrases || "";
     // Re-build custom selects to reflect reset values
     cloakIconWrap.innerHTML = "";
     cloakIconWrap.appendChild(
@@ -51654,7 +51691,39 @@ function brOpenTab(url: string) {
   if (url) brSwitchTab(id); else brShowWelcome();
 }
 
-function brNavigateTo(rawUrl: string) {
+function brSetLoading(loading: boolean) {
+  const bar = document.getElementById("br-progress");
+  if (!bar) return;
+  if (loading) {
+    bar.className = "br-progress";
+    requestAnimationFrame(() => requestAnimationFrame(() => { bar.className = "br-progress loading"; }));
+  } else {
+    bar.className = "br-progress done";
+    setTimeout(() => { if (bar.className === "br-progress done") bar.className = "br-progress"; }, 1000);
+  }
+}
+
+function updateBrFavicon(url: string) {
+  const img = document.getElementById("br-favicon") as HTMLImageElement | null;
+  if (!img) return;
+  try {
+    const hostname = new URL(url).hostname;
+    if (hostname) {
+      img.src = `https://www.google.com/s2/favicons?sz=32&domain=${hostname}`;
+      img.style.display = "";
+    } else img.style.display = "none";
+  } catch { img.style.display = "none"; }
+}
+
+function updateSecureIcon(url: string) {
+  const lock = document.getElementById("br-lock");
+  if (!lock) return;
+  const isHttps = url.startsWith("https://");
+  lock.style.color = isHttps ? "#4ade80" : "rgba(255,255,255,0.25)";
+  lock.title = isHttps ? "Secure (HTTPS)" : "Not secure";
+}
+
+async function brNavigateTo(rawUrl: string) {
   const url = normBrUrl(rawUrl);
   if (!url) return;
   const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
@@ -51663,9 +51732,10 @@ function brNavigateTo(rawUrl: string) {
   if (blocked) blocked.classList.remove("visible");
   const welcome = document.getElementById("br-welcome");
   if (welcome) welcome.style.display = "none";
-  const frame = document.getElementById("br-frame") as HTMLIFrameElement;
-  if (frame) { frame.style.display = "block"; frame.src = `/uv/service/${encodeURIComponent(url)}`; }
   setTab("browser");
+  updateBrFavicon(url);
+  updateSecureIcon(url);
+  brSetLoading(true);
   if (!brActiveId || !brTabs.find(t => t.id === brActiveId)) {
     brOpenTab(url);
   } else {
@@ -51677,6 +51747,14 @@ function brNavigateTo(rawUrl: string) {
     renderBrTabs();
   }
   updateBmToggle(url);
+  const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+  if (frame) {
+    frame.style.display = "block";
+    if ("serviceWorker" in navigator) {
+      try { await navigator.serviceWorker.ready; } catch {}
+    }
+    frame.src = `/uv/service/${encodeURIComponent(url)}`;
+  }
 }
 
 function updateBmToggle(url: string) {
@@ -51740,6 +51818,7 @@ function initBrowser() {
   frame?.addEventListener("load", () => {
     if (loadBlockTimer) { clearTimeout(loadBlockTimer); loadBlockTimer = null; }
     blocked?.classList.remove("visible");
+    brSetLoading(false);
     try {
       const tabEntry = brTabs.find(t => t.id === brActiveId);
       if (tabEntry && frame.contentDocument) {
@@ -51848,7 +51927,7 @@ function showToast(msg: string) {
 async function boot() {
   // Register service worker for UV proxy
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/uv.sw.js", { scope: "/uv/" }).catch(() => {});
+    navigator.serviceWorker.register("/uv.sw.js").catch(() => {});
   }
 
   applyTheme();
