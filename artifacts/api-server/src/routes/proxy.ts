@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { Request, Response } from "express";
+import type { Request, Response as ExpressResponse } from "express";
 import { lookup } from "dns/promises";
 
 const router = Router();
@@ -17,13 +17,12 @@ const STRIP_HEADERS = new Set([
 const MAX_RESPONSE_BYTES = 10 * 1024 * 1024; // 10 MB
 const MAX_REDIRECTS = 5;
 
-/** Return true if the IPv4/IPv6 string is a private/internal/reserved address */
+/** Return true if IPv4/IPv6 string is a private/internal/reserved address */
 function isPrivateIp(ip: string): boolean {
   const addr = ip.replace(/^::ffff:/i, "");
-
   if (addr === "::1" || addr === "127.0.0.1" || addr.startsWith("127.")) return true;
   if (addr === "0.0.0.0" || addr === "::") return true;
-  if (addr.startsWith("169.254.")) return true; // link-local / AWS metadata
+  if (addr.startsWith("169.254.")) return true; // link-local / metadata
   if (addr.startsWith("10.")) return true;
   if (addr.startsWith("192.168.")) return true;
   const parts = addr.split(".").map(Number);
@@ -37,7 +36,6 @@ function isPrivateIp(ip: string): boolean {
     return true;
   if (/^fe80:/i.test(addr)) return true;
   if (/^f[cd]/i.test(addr)) return true;
-
   return false;
 }
 
@@ -47,25 +45,22 @@ const BLOCKED_HOSTS = new Set([
   "metadata.internal",
 ]);
 
-/** Resolve hostname and reject if any resolved IP is private */
 async function isSafeHost(host: string): Promise<boolean> {
   const h = host.toLowerCase();
   if (BLOCKED_HOSTS.has(h)) return false;
   if (h.endsWith(".internal") || h.endsWith(".local") || h.endsWith(".localhost"))
     return false;
-
   try {
     const results = await lookup(h, { all: true });
     for (const r of results) {
       if (isPrivateIp(r.address)) return false;
     }
   } catch {
-    return false; // DNS failure → unsafe
+    return false;
   }
   return true;
 }
 
-/** Validate a URL object: must be http/https and resolve to a public IP */
 async function isSafeUrl(url: URL): Promise<boolean> {
   if (url.protocol !== "http:" && url.protocol !== "https:") return false;
   return isSafeHost(url.hostname);
@@ -73,13 +68,13 @@ async function isSafeUrl(url: URL): Promise<boolean> {
 
 /**
  * Manually follow redirects so every hop is safety-checked.
- * Returns the final Response (without body consumed) or throws.
+ * Returns { response, finalUrl } — response body NOT yet consumed.
  */
 async function safeFetch(
   startUrl: string,
   reqHeaders: Record<string, string>,
   timeoutMs: number,
-): Promise<Response> {
+): Promise<{ response: globalThis.Response; finalUrl: string }> {
   let currentUrl = startUrl;
   let hops = 0;
 
@@ -91,33 +86,48 @@ async function safeFetch(
       throw new Error("Invalid redirect URL");
     }
 
-    const safe = await isSafeUrl(parsed);
-    if (!safe) throw new Error("Redirect target is not allowed");
+    if (!(await isSafeUrl(parsed))) throw new Error("Redirect target is not allowed");
 
     const response = await fetch(currentUrl, {
       method: "GET",
       headers: reqHeaders,
-      redirect: "manual", // never let fetch follow redirects automatically
+      redirect: "manual",
       signal: AbortSignal.timeout(timeoutMs),
     });
 
-    const status = response.status;
+    const { status } = response;
     if (status >= 300 && status < 400) {
       const location = response.headers.get("location");
       if (!location) throw new Error("Redirect with no Location header");
-      // Resolve relative redirects
       currentUrl = new URL(location, currentUrl).toString();
       hops++;
       continue;
     }
 
-    return response; // non-redirect final response
+    return { response, finalUrl: currentUrl };
   }
 
   throw new Error("Too many redirects");
 }
 
-router.get("/proxy", async (req: Request, res: Response) => {
+/** Inject <base href> into the <head> of an HTML document so relative URLs resolve correctly. */
+function injectBase(html: string, baseUrl: string): string {
+  const tag = `<base href="${baseUrl.replace(/"/g, "&quot;")}">`;
+  // Insert after existing <base> if present (replace it), or right after <head>
+  if (/<base\s[^>]*href/i.test(html)) {
+    return html.replace(/<base\s[^>]*>/i, tag);
+  }
+  // Try to insert after <head> tag
+  const headMatch = html.match(/<head[^>]*>/i);
+  if (headMatch && headMatch.index !== undefined) {
+    const insertAt = headMatch.index + headMatch[0].length;
+    return html.slice(0, insertAt) + tag + html.slice(insertAt);
+  }
+  // Fallback: prepend
+  return tag + html;
+}
+
+router.get("/proxy", async (req: Request, res: ExpressResponse) => {
   const targetUrl = req.query["url"] as string;
   if (!targetUrl) {
     res.status(400).json({ error: "url parameter required" });
@@ -136,7 +146,6 @@ router.get("/proxy", async (req: Request, res: Response) => {
     return;
   }
 
-  // Initial SSRF check (redirect hops are also checked inside safeFetch)
   if (!(await isSafeUrl(parsed))) {
     res.status(403).json({ error: "Target URL is not allowed" });
     return;
@@ -153,13 +162,16 @@ router.get("/proxy", async (req: Request, res: Response) => {
   };
 
   try {
-    const response = await safeFetch(targetUrl, upstream, 15_000);
+    const { response, finalUrl } = await safeFetch(targetUrl, upstream, 15_000);
 
     const contentLength = response.headers.get("content-length");
     if (contentLength && Number(contentLength) > MAX_RESPONSE_BYTES) {
       res.status(413).json({ error: "Response too large" });
       return;
     }
+
+    const contentType = response.headers.get("content-type") ?? "";
+    const isHtml = contentType.includes("text/html");
 
     res.status(response.status);
 
@@ -169,14 +181,9 @@ router.get("/proxy", async (req: Request, res: Response) => {
       }
     }
 
-    // CORS: only allow the same Replit app origin, not open wildcard
-    const appOrigin = process.env["APP_ORIGIN"] ?? "";
+    // CORS: reflect only the same request origin (service worker same-origin)
     const requestOrigin = req.headers["origin"] as string | undefined;
-    if (appOrigin && requestOrigin === appOrigin) {
-      res.setHeader("Access-Control-Allow-Origin", appOrigin);
-      res.setHeader("Vary", "Origin");
-    } else if (!appOrigin && requestOrigin) {
-      // Dev fallback: same-origin only (service worker always matches)
+    if (requestOrigin) {
       res.setHeader("Access-Control-Allow-Origin", requestOrigin);
       res.setHeader("Vary", "Origin");
     }
@@ -186,7 +193,16 @@ router.get("/proxy", async (req: Request, res: Response) => {
       res.status(413).json({ error: "Response too large" });
       return;
     }
-    res.end(Buffer.from(buffer));
+
+    if (isHtml) {
+      const text = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
+      const rebased = injectBase(text, finalUrl);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Content-Length", Buffer.byteLength(rebased));
+      res.end(Buffer.from(rebased));
+    } else {
+      res.end(Buffer.from(buffer));
+    }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     res.status(502).send("Proxy error: " + msg);
