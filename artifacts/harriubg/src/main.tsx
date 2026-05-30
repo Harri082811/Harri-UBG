@@ -50432,8 +50432,8 @@ function rebuildStars() {
     x: Math.random() * w,
     y: Math.random() * h,
     vx: (Math.random() - 0.5) * 0.22,
-    vy: Math.random() * 0.32 + 0.1,
-    r: Math.random() * 1.1 + 0.2,
+    vy: Math.random() * 0.24 + 0.07,
+    r: Math.random() * 1.5 + 0.4,
   }));
 }
 
