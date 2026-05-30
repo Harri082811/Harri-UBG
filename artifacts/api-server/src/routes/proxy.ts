@@ -14,21 +14,16 @@ const STRIP_HEADERS = new Set([
   "permissions-policy",
 ]);
 
-/** Return true if the IP string is a private/internal/reserved address */
+const MAX_RESPONSE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_REDIRECTS = 5;
+
+/** Return true if the IPv4/IPv6 string is a private/internal/reserved address */
 function isPrivateIp(ip: string): boolean {
-  // Normalise IPv6-mapped IPv4  ::ffff:1.2.3.4
   const addr = ip.replace(/^::ffff:/i, "");
 
-  // Loopback
   if (addr === "::1" || addr === "127.0.0.1" || addr.startsWith("127.")) return true;
-
-  // Unspecified
   if (addr === "0.0.0.0" || addr === "::") return true;
-
-  // Link-local 169.254.x.x (includes AWS/GCP/Azure metadata: 169.254.169.254)
-  if (addr.startsWith("169.254.")) return true;
-
-  // RFC 1918 private ranges
+  if (addr.startsWith("169.254.")) return true; // link-local / AWS metadata
   if (addr.startsWith("10.")) return true;
   if (addr.startsWith("192.168.")) return true;
   const parts = addr.split(".").map(Number);
@@ -40,50 +35,87 @@ function isPrivateIp(ip: string): boolean {
     parts[1] <= 31
   )
     return true;
-
-  // IPv6 private / link-local / unique-local
   if (/^fe80:/i.test(addr)) return true;
   if (/^f[cd]/i.test(addr)) return true;
 
   return false;
 }
 
-/** Explicitly blocked hostnames */
 const BLOCKED_HOSTS = new Set([
   "localhost",
   "metadata.google.internal",
   "metadata.internal",
 ]);
 
-async function isSafeUrl(url: URL): Promise<boolean> {
-  const host = url.hostname.toLowerCase();
-
-  // Block by explicit hostname
-  if (BLOCKED_HOSTS.has(host)) return false;
-
-  // Block internal TLDs
-  if (
-    host.endsWith(".internal") ||
-    host.endsWith(".local") ||
-    host.endsWith(".localhost")
-  )
+/** Resolve hostname and reject if any resolved IP is private */
+async function isSafeHost(host: string): Promise<boolean> {
+  const h = host.toLowerCase();
+  if (BLOCKED_HOSTS.has(h)) return false;
+  if (h.endsWith(".internal") || h.endsWith(".local") || h.endsWith(".localhost"))
     return false;
 
-  // Resolve DNS and reject if any address is private
   try {
-    const results = await lookup(host, { all: true });
+    const results = await lookup(h, { all: true });
     for (const r of results) {
       if (isPrivateIp(r.address)) return false;
     }
   } catch {
-    // DNS failure — treat as unsafe
-    return false;
+    return false; // DNS failure → unsafe
   }
-
   return true;
 }
 
-const MAX_RESPONSE_BYTES = 10 * 1024 * 1024; // 10 MB
+/** Validate a URL object: must be http/https and resolve to a public IP */
+async function isSafeUrl(url: URL): Promise<boolean> {
+  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  return isSafeHost(url.hostname);
+}
+
+/**
+ * Manually follow redirects so every hop is safety-checked.
+ * Returns the final Response (without body consumed) or throws.
+ */
+async function safeFetch(
+  startUrl: string,
+  reqHeaders: Record<string, string>,
+  timeoutMs: number,
+): Promise<Response> {
+  let currentUrl = startUrl;
+  let hops = 0;
+
+  while (hops <= MAX_REDIRECTS) {
+    let parsed: URL;
+    try {
+      parsed = new URL(currentUrl);
+    } catch {
+      throw new Error("Invalid redirect URL");
+    }
+
+    const safe = await isSafeUrl(parsed);
+    if (!safe) throw new Error("Redirect target is not allowed");
+
+    const response = await fetch(currentUrl, {
+      method: "GET",
+      headers: reqHeaders,
+      redirect: "manual", // never let fetch follow redirects automatically
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+
+    const status = response.status;
+    if (status >= 300 && status < 400) {
+      const location = response.headers.get("location");
+      if (!location) throw new Error("Redirect with no Location header");
+      // Resolve relative redirects
+      currentUrl = new URL(location, currentUrl).toString();
+      hops++;
+      continue;
+    }
+
+    return response; // non-redirect final response
+  }
+
+  throw new Error("Too many redirects");
+}
 
 router.get("/proxy", async (req: Request, res: Response) => {
   const targetUrl = req.query["url"] as string;
@@ -92,7 +124,6 @@ router.get("/proxy", async (req: Request, res: Response) => {
     return;
   }
 
-  // Validate URL structure
   let parsed: URL;
   try {
     parsed = new URL(targetUrl);
@@ -105,30 +136,25 @@ router.get("/proxy", async (req: Request, res: Response) => {
     return;
   }
 
-  // SSRF guard — reject private/internal/metadata targets
-  const safe = await isSafeUrl(parsed);
-  if (!safe) {
+  // Initial SSRF check (redirect hops are also checked inside safeFetch)
+  if (!(await isSafeUrl(parsed))) {
     res.status(403).json({ error: "Target URL is not allowed" });
     return;
   }
 
-  try {
-    const response = await fetch(targetUrl, {
-      method: "GET",
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        Accept:
-          (req.headers["accept"] as string) ||
-          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language":
-          (req.headers["accept-language"] as string) || "en-US,en;q=0.9",
-      },
-      redirect: "follow",
-      signal: AbortSignal.timeout(15000),
-    });
+  const upstream: Record<string, string> = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    Accept:
+      (req.headers["accept"] as string) ||
+      "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language":
+      (req.headers["accept-language"] as string) || "en-US,en;q=0.9",
+  };
 
-    // Enforce size cap before streaming
+  try {
+    const response = await safeFetch(targetUrl, upstream, 15_000);
+
     const contentLength = response.headers.get("content-length");
     if (contentLength && Number(contentLength) > MAX_RESPONSE_BYTES) {
       res.status(413).json({ error: "Response too large" });
@@ -137,17 +163,21 @@ router.get("/proxy", async (req: Request, res: Response) => {
 
     res.status(response.status);
 
-    // Forward safe headers, stripping those that break iframe embedding
     for (const [key, value] of response.headers.entries()) {
       if (!STRIP_HEADERS.has(key.toLowerCase())) {
         res.setHeader(key, value);
       }
     }
 
-    // Scope CORS to same origin only
-    const origin = req.headers["origin"];
-    if (origin) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
+    // CORS: only allow the same Replit app origin, not open wildcard
+    const appOrigin = process.env["APP_ORIGIN"] ?? "";
+    const requestOrigin = req.headers["origin"] as string | undefined;
+    if (appOrigin && requestOrigin === appOrigin) {
+      res.setHeader("Access-Control-Allow-Origin", appOrigin);
+      res.setHeader("Vary", "Origin");
+    } else if (!appOrigin && requestOrigin) {
+      // Dev fallback: same-origin only (service worker always matches)
+      res.setHeader("Access-Control-Allow-Origin", requestOrigin);
       res.setHeader("Vary", "Origin");
     }
 
