@@ -50450,7 +50450,10 @@ function tick() {
     s.y += s.vy;
     if (s.x < -5) s.x = w + 5;
     if (s.x > w + 5) s.x = -5;
-    if (s.y > h + 5) { s.y = -5; s.x = Math.random() * w; }
+    if (s.y > h + 5) {
+      s.y = -5;
+      s.x = Math.random() * w;
+    }
 
     ctx.beginPath();
     ctx.fillStyle = `rgba(${starColor}, ${0.55 + s.r * 0.25})`;
@@ -50576,7 +50579,8 @@ function applyBgEffects() {
     rafId = 0;
   }
   const ssEl = document.querySelector(".shooting-stars") as HTMLElement | null;
-  if (ssEl) ssEl.style.display = settings.showShootingStars !== false ? "" : "none";
+  if (ssEl)
+    ssEl.style.display = settings.showShootingStars !== false ? "" : "none";
 }
 
 function initConstellation() {
@@ -50599,17 +50603,16 @@ function initConstellation() {
    ============================================================ */
 
 const DEFAULT_GREETINGS = [
-  "Welcome back ✦",
-  "Let's play something",
-  "What are you watching?",
-  "Browse free, play anything",
+  "Welcome back!",
+  "Let's play something!",
+  "What are we watching today?",
+  "Browse free, play anything!",
   "Ready to explore?",
   "Your playground awaits",
   "Glad you're here",
   "What's on your mind?",
   "Enjoy the ride",
-  "Good vibes only ✦",
-  "Play hard, browse free",
+  "Harri is the goat",
   "Where to today?",
 ];
 let lastGreetingIdx = -1;
@@ -50619,12 +50622,16 @@ function rotateGreeting() {
   if (!el) return;
   const raw = (settings.greetingPhrases || "").trim();
   const list = raw
-    ? raw.split("\n").map((l) => l.trim()).filter((l) => l.length > 0)
+    ? raw
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0)
     : DEFAULT_GREETINGS;
   if (list.length === 0) return;
   let idx: number;
-  do { idx = Math.floor(Math.random() * list.length); }
-  while (list.length > 1 && idx === lastGreetingIdx);
+  do {
+    idx = Math.floor(Math.random() * list.length);
+  } while (list.length > 1 && idx === lastGreetingIdx);
   lastGreetingIdx = idx;
   el.textContent = list[idx];
 }
@@ -50654,7 +50661,11 @@ function initTabs() {
   });
 
   const initial = (location.hash.replace("#", "") || "home") as Tab;
-  if (["home", "games", "movies", "shows", "settings", "browser"].includes(initial))
+  if (
+    ["home", "games", "movies", "shows", "settings", "browser"].includes(
+      initial,
+    )
+  )
     setTab(initial);
 }
 
@@ -51391,7 +51402,9 @@ function bindSettings() {
     });
   }
 
-  const sShootingStars = document.getElementById("set-shooting-stars") as HTMLInputElement | null;
+  const sShootingStars = document.getElementById(
+    "set-shooting-stars",
+  ) as HTMLInputElement | null;
   if (sShootingStars) {
     sShootingStars.checked = settings.showShootingStars !== false;
     sShootingStars.addEventListener("change", () => {
@@ -51401,7 +51414,9 @@ function bindSettings() {
     });
   }
 
-  const sGreetings = document.getElementById("set-greetings") as HTMLTextAreaElement | null;
+  const sGreetings = document.getElementById(
+    "set-greetings",
+  ) as HTMLTextAreaElement | null;
   if (sGreetings) {
     sGreetings.value = settings.greetingPhrases || "";
     sGreetings.addEventListener("input", () => {
@@ -51418,7 +51433,8 @@ function bindSettings() {
     sAutoplay.checked = settings.autoplay;
     if (sStars) sStars.checked = settings.showStars;
     if (sBlobs) sBlobs.checked = settings.showBlobs;
-    if (sShootingStars) sShootingStars.checked = settings.showShootingStars !== false;
+    if (sShootingStars)
+      sShootingStars.checked = settings.showShootingStars !== false;
     if (sGreetings) sGreetings.value = settings.greetingPhrases || "";
     // Re-build custom selects to reflect reset values
     cloakIconWrap.innerHTML = "";
@@ -51503,7 +51519,9 @@ function loadHomeShortcuts(): HomeShortcut[] {
 }
 
 function saveHomeShortcuts(shortcuts: HomeShortcut[]) {
-  try { localStorage.setItem(HOME_SC_STORAGE, JSON.stringify(shortcuts)); } catch {}
+  try {
+    localStorage.setItem(HOME_SC_STORAGE, JSON.stringify(shortcuts));
+  } catch {}
 }
 
 let homeShortcuts: HomeShortcut[] = loadHomeShortcuts();
@@ -51525,12 +51543,14 @@ function renderHomeShortcuts() {
       <span class="home-sc-icon"><img src="${fav}" width="20" height="20" alt="" onerror="this.style.opacity='.4'" /></span>
       <span class="home-sc-label">${escapeHtml(sc.title)}</span>
     `;
-    btn.querySelector<HTMLElement>(".home-sc-remove")!.addEventListener("click", (e) => {
-      e.stopPropagation();
-      homeShortcuts.splice(i, 1);
-      saveHomeShortcuts(homeShortcuts);
-      renderHomeShortcuts();
-    });
+    btn
+      .querySelector<HTMLElement>(".home-sc-remove")!
+      .addEventListener("click", (e) => {
+        e.stopPropagation();
+        homeShortcuts.splice(i, 1);
+        saveHomeShortcuts(homeShortcuts);
+        renderHomeShortcuts();
+      });
     btn.addEventListener("click", () => brNavigateTo(sc.url));
     container.appendChild(btn);
   }
@@ -51549,7 +51569,9 @@ function renderHomeShortcuts() {
     const url = normBrUrl(raw);
     if (!url) return;
     let title = url;
-    try { title = new URL(url).hostname.replace(/^www\./, ""); } catch {}
+    try {
+      title = new URL(url).hostname.replace(/^www\./, "");
+    } catch {}
     homeShortcuts.push({ url, title });
     saveHomeShortcuts(homeShortcuts);
     renderHomeShortcuts();
@@ -51585,7 +51607,9 @@ function loadBrowserState(): { bookmarks: Bookmark[] } {
 }
 
 function saveBrowserState(bookmarks: Bookmark[]) {
-  try { localStorage.setItem(BR_STORAGE, JSON.stringify({ bookmarks })); } catch {}
+  try {
+    localStorage.setItem(BR_STORAGE, JSON.stringify({ bookmarks }));
+  } catch {}
 }
 
 let brTabs: BrowserTabEntry[] = [];
@@ -51594,7 +51618,11 @@ let brBookmarks: Bookmark[] = loadBrowserState().bookmarks;
 let brBlockedUrl = "";
 
 function brFaviconUrl(url: string): string {
-  try { return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=16`; } catch { return ""; }
+  try {
+    return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=16`;
+  } catch {
+    return "";
+  }
 }
 
 function normBrUrl(raw: string): string {
@@ -51614,14 +51642,16 @@ function renderBrTabs() {
     const tab = document.createElement("button");
     tab.className = "br-tab" + (t.id === brActiveId ? " active" : "");
     const fav = brFaviconUrl(t.url);
-    tab.innerHTML = `${fav ? `<img src="${fav}" class="br-tab-fav" width="14" height="14" alt="" onerror="this.remove()">` : ""}` +
+    tab.innerHTML =
+      `${fav ? `<img src="${fav}" class="br-tab-fav" width="14" height="14" alt="" onerror="this.remove()">` : ""}` +
       `<span class="br-tab-title">${escapeHtml(t.title || t.url || "New Tab")}</span>` +
       `<span class="br-tab-close" title="Close">✕</span>`;
     tab.querySelector(".br-tab-close")!.addEventListener("click", (e) => {
       e.stopPropagation();
-      brTabs = brTabs.filter(x => x.id !== t.id);
+      brTabs = brTabs.filter((x) => x.id !== t.id);
       if (brActiveId === t.id) brActiveId = brTabs[brTabs.length - 1]?.id ?? "";
-      if (brActiveId) brSwitchTab(brActiveId); else brShowWelcome();
+      if (brActiveId) brSwitchTab(brActiveId);
+      else brShowWelcome();
       renderBrTabs();
     });
     tab.addEventListener("click", () => brSwitchTab(t.id));
@@ -51643,7 +51673,8 @@ function renderBrBookmarks() {
     const btn = document.createElement("button");
     btn.className = "br-bm";
     const fav = brFaviconUrl(bm.url);
-    btn.innerHTML = `${fav ? `<img src="${fav}" width="14" height="14" alt="" class="br-bm-favicon" onerror="this.remove()">` : ""}` +
+    btn.innerHTML =
+      `${fav ? `<img src="${fav}" width="14" height="14" alt="" class="br-bm-favicon" onerror="this.remove()">` : ""}` +
       `<span>${escapeHtml(bm.title)}</span>`;
     btn.addEventListener("click", () => brNavigateTo(bm.url));
     bar.appendChild(btn);
@@ -51654,7 +51685,10 @@ function brShowWelcome() {
   const frame = document.getElementById("br-frame") as HTMLIFrameElement;
   const welcome = document.getElementById("br-welcome");
   const blocked = document.getElementById("br-blocked");
-  if (frame) { frame.src = "about:blank"; frame.style.display = "none"; }
+  if (frame) {
+    frame.src = "about:blank";
+    frame.style.display = "none";
+  }
   if (welcome) welcome.style.display = "flex";
   if (blocked) blocked.classList.remove("visible");
   const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
@@ -51664,16 +51698,22 @@ function brShowWelcome() {
 
 function brSwitchTab(id: string) {
   brActiveId = id;
-  const t = brTabs.find(x => x.id === id);
+  const t = brTabs.find((x) => x.id === id);
   renderBrTabs();
-  if (!t) { brShowWelcome(); return; }
+  if (!t) {
+    brShowWelcome();
+    return;
+  }
   const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
   if (urlInput) urlInput.value = t.url;
   if (t.url) {
     const frame = document.getElementById("br-frame") as HTMLIFrameElement;
     const welcome = document.getElementById("br-welcome");
     const blocked = document.getElementById("br-blocked");
-    if (frame) { frame.style.display = "block"; frame.src = t.url; }
+    if (frame) {
+      frame.style.display = "block";
+      frame.src = t.url;
+    }
     if (welcome) welcome.style.display = "none";
     if (blocked) blocked.classList.remove("visible");
   } else {
@@ -51684,11 +51724,14 @@ function brSwitchTab(id: string) {
 
 function brOpenTab(url: string) {
   const id = Math.random().toString(36).slice(2);
-  const title = url ? (new URL(url.startsWith("http") ? url : "https://" + url).hostname || url) : "New Tab";
+  const title = url
+    ? new URL(url.startsWith("http") ? url : "https://" + url).hostname || url
+    : "New Tab";
   brTabs.push({ id, url, title });
   brActiveId = id;
   renderBrTabs();
-  if (url) brSwitchTab(id); else brShowWelcome();
+  if (url) brSwitchTab(id);
+  else brShowWelcome();
 }
 
 function brSetLoading(loading: boolean) {
@@ -51696,10 +51739,16 @@ function brSetLoading(loading: boolean) {
   if (!bar) return;
   if (loading) {
     bar.className = "br-progress";
-    requestAnimationFrame(() => requestAnimationFrame(() => { bar.className = "br-progress loading"; }));
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        bar.className = "br-progress loading";
+      }),
+    );
   } else {
     bar.className = "br-progress done";
-    setTimeout(() => { if (bar.className === "br-progress done") bar.className = "br-progress"; }, 1000);
+    setTimeout(() => {
+      if (bar.className === "br-progress done") bar.className = "br-progress";
+    }, 1000);
   }
 }
 
@@ -51712,7 +51761,9 @@ function updateBrFavicon(url: string) {
       img.src = `https://www.google.com/s2/favicons?sz=32&domain=${hostname}`;
       img.style.display = "";
     } else img.style.display = "none";
-  } catch { img.style.display = "none"; }
+  } catch {
+    img.style.display = "none";
+  }
 }
 
 function updateSecureIcon(url: string) {
@@ -51736,13 +51787,17 @@ async function brNavigateTo(rawUrl: string) {
   updateBrFavicon(url);
   updateSecureIcon(url);
   brSetLoading(true);
-  if (!brActiveId || !brTabs.find(t => t.id === brActiveId)) {
+  if (!brActiveId || !brTabs.find((t) => t.id === brActiveId)) {
     brOpenTab(url);
   } else {
-    const t = brTabs.find(t => t.id === brActiveId);
+    const t = brTabs.find((t) => t.id === brActiveId);
     if (t) {
       t.url = url;
-      try { t.title = new URL(url).hostname; } catch { t.title = url; }
+      try {
+        t.title = new URL(url).hostname;
+      } catch {
+        t.title = url;
+      }
     }
     renderBrTabs();
   }
@@ -51751,7 +51806,9 @@ async function brNavigateTo(rawUrl: string) {
   if (frame) {
     frame.style.display = "block";
     if ("serviceWorker" in navigator) {
-      try { await navigator.serviceWorker.ready; } catch {}
+      try {
+        await navigator.serviceWorker.ready;
+      } catch {}
     }
     frame.src = `/uv/service/${encodeURIComponent(url)}`;
   }
@@ -51760,7 +51817,7 @@ async function brNavigateTo(rawUrl: string) {
 function updateBmToggle(url: string) {
   const btn = document.getElementById("br-bm-toggle");
   if (!btn) return;
-  const isBookmarked = brBookmarks.some(b => b.url === url);
+  const isBookmarked = brBookmarks.some((b) => b.url === url);
   btn.classList.toggle("active", isBookmarked && !!url);
   btn.title = isBookmarked ? "Remove bookmark" : "Bookmark this page";
 }
@@ -51778,32 +51835,42 @@ function initBrowser() {
   });
 
   document.getElementById("br-back")?.addEventListener("click", () => {
-    try { frame?.contentWindow?.history.back(); } catch {}
+    try {
+      frame?.contentWindow?.history.back();
+    } catch {}
   });
 
   document.getElementById("br-refresh")?.addEventListener("click", () => {
     if (frame) {
-      const tab = brTabs.find(t => t.id === brActiveId);
+      const tab = brTabs.find((t) => t.id === brActiveId);
       if (tab?.url) {
         frame.src = `/uv/service/${encodeURIComponent(tab.url)}`;
       } else {
-        const src = frame.src; frame.src = "about:blank"; setTimeout(() => { frame.src = src; }, 50);
+        const src = frame.src;
+        frame.src = "about:blank";
+        setTimeout(() => {
+          frame.src = src;
+        }, 50);
       }
     }
   });
 
-  document.getElementById("br-newtab")?.addEventListener("click", () => brOpenTab(""));
+  document
+    .getElementById("br-newtab")
+    ?.addEventListener("click", () => brOpenTab(""));
 
   document.getElementById("br-bm-toggle")?.addEventListener("click", () => {
     if (urlInput) {
       const url = urlInput.value;
       if (!url || url === "about:blank") return;
-      const idx = brBookmarks.findIndex(b => b.url === url);
+      const idx = brBookmarks.findIndex((b) => b.url === url);
       if (idx >= 0) {
         brBookmarks.splice(idx, 1);
       } else {
         let title = url;
-        try { title = new URL(url).hostname.replace("www.", ""); } catch {}
+        try {
+          title = new URL(url).hostname.replace("www.", "");
+        } catch {}
         brBookmarks.push({ url, title });
       }
       saveBrowserState(brBookmarks);
@@ -51816,25 +51883,35 @@ function initBrowser() {
   const blocked = document.getElementById("br-blocked");
 
   frame?.addEventListener("load", () => {
-    if (loadBlockTimer) { clearTimeout(loadBlockTimer); loadBlockTimer = null; }
+    if (loadBlockTimer) {
+      clearTimeout(loadBlockTimer);
+      loadBlockTimer = null;
+    }
     blocked?.classList.remove("visible");
     brSetLoading(false);
     try {
-      const tabEntry = brTabs.find(t => t.id === brActiveId);
+      const tabEntry = brTabs.find((t) => t.id === brActiveId);
       if (tabEntry && frame.contentDocument) {
         const t = frame.contentDocument.title;
-        if (t) { tabEntry.title = t; renderBrTabs(); }
+        if (t) {
+          tabEntry.title = t;
+          renderBrTabs();
+        }
       }
     } catch {}
   });
 
   document.getElementById("br-open-newtab")?.addEventListener("click", () => {
-    const tab = brTabs.find(t => t.id === brActiveId);
-    const url = tab?.url || (document.getElementById("br-url-input") as HTMLInputElement)?.value;
+    const tab = brTabs.find((t) => t.id === brActiveId);
+    const url =
+      tab?.url ||
+      (document.getElementById("br-url-input") as HTMLInputElement)?.value;
     if (url && url !== "about:blank") window.open(url, "_blank");
   });
 
-  document.getElementById("br-exit")?.addEventListener("click", () => setTab("home"));
+  document
+    .getElementById("br-exit")
+    ?.addEventListener("click", () => setTab("home"));
 
   const origNavigate = brNavigateTo;
   (window as any).__brNavHook = (url: string) => {
@@ -51851,14 +51928,18 @@ function initBrowser() {
   };
 
   // Hero proxy bar wires up to browser tab
-  const heroInput = document.getElementById("hero-proxy-input") as HTMLInputElement;
+  const heroInput = document.getElementById(
+    "hero-proxy-input",
+  ) as HTMLInputElement;
   const heroGo = document.getElementById("hero-proxy-go");
   const launchBr = () => {
     const url = normBrUrl(heroInput?.value ?? "");
     if (url) brNavigateTo(url);
     else setTab("browser");
   };
-  heroInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") launchBr(); });
+  heroInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") launchBr();
+  });
   heroGo?.addEventListener("click", launchBr);
 
   brShowWelcome();
