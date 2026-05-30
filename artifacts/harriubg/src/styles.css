@@ -1813,3 +1813,294 @@ body.br-active #view-browser {
 .br-blocked-icon { font-size: 48px; }
 .br-blocked h3 { color: var(--text); font-family: var(--font-display); margin: 0; font-size: 22px; }
 .br-blocked p { margin: 0; font-size: 14px; max-width: 420px; line-height: 1.6; }
+
+/* ============================================================
+   Shortcut Add Modal
+   ============================================================ */
+.sc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.65);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: scOverlayIn .18s ease;
+}
+.sc-modal-overlay[hidden] { display: none !important; }
+@keyframes scOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.sc-modal {
+  background: linear-gradient(145deg, rgba(18,15,38,0.98), rgba(10,8,22,0.99));
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 18px;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 24px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.06);
+  animation: scModalIn .22s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes scModalIn {
+  from { transform: scale(.88) translateY(16px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+.sc-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 0;
+}
+.sc-modal-head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.sc-modal-close {
+  background: rgba(255,255,255,.06);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--text-dim);
+  transition: background .15s, color .15s;
+}
+.sc-modal-close:hover { background: rgba(255,255,255,.12); color: var(--text); }
+.sc-modal-body {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sc-modal-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.sc-modal-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 12px;
+  transition: border-color .2s, box-shadow .2s;
+  color: var(--text-dim);
+}
+.sc-modal-input-wrap:focus-within {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(34,211,238,.12);
+}
+.sc-modal-input-wrap input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--font-sans);
+  padding: 11px 0;
+}
+.sc-modal-input-wrap input::placeholder { color: var(--text-faint); }
+.sc-modal-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.sc-modal-preview[hidden] { display: none; }
+.sc-modal-preview img { border-radius: 4px; }
+.sc-modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 0 20px 20px;
+  justify-content: flex-end;
+}
+.sc-modal-btn {
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.sc-modal-btn:active { transform: scale(.97); }
+.sc-modal-cancel {
+  background: rgba(255,255,255,.05);
+  color: var(--text-dim);
+}
+.sc-modal-cancel:hover { background: rgba(255,255,255,.1); color: var(--text); }
+.sc-modal-save {
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(34,211,238,.25);
+}
+.sc-modal-save:hover { box-shadow: 0 6px 22px rgba(34,211,238,.4); filter: brightness(1.1); }
+
+/* ============================================================
+   Welcome screen enhancements
+   ============================================================ */
+.br-welcome {
+  animation: brWelcomeIn .5s cubic-bezier(.22,1,.36,1);
+}
+@keyframes brWelcomeIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.br-welcome-clock {
+  font-size: 52px;
+  font-weight: 800;
+  font-family: var(--font-display);
+  color: var(--text);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-align: center;
+}
+.br-welcome-greeting {
+  font-size: 15px;
+  color: var(--text-dim);
+  text-align: center;
+  font-family: var(--font-sans);
+}
+.br-welcome-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin: 0;
+  text-align: center;
+}
+.br-welcome-title span {
+  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.br-welcome-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px;
+  padding: 0 16px;
+  width: 100%;
+  max-width: 480px;
+  transition: border-color .2s, box-shadow .2s;
+  color: var(--text-dim);
+}
+.br-welcome-search:focus-within {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(34,211,238,.12), 0 8px 32px rgba(0,0,0,.4);
+}
+.br-welcome-search input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 15px;
+  font-family: var(--font-sans);
+  padding: 13px 0;
+}
+.br-welcome-search input::placeholder { color: var(--text-faint); }
+
+/* Animated shortcut cards */
+.br-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(4, 90px);
+  gap: 14px;
+  justify-content: center;
+}
+@media (max-width: 500px) { .br-shortcuts { grid-template-columns: repeat(2, 90px); } }
+.br-shortcut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 10px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+  cursor: pointer;
+  transition: background .2s, transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s, border-color .2s;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+  font-family: var(--font-sans);
+  animation: scCardIn .4s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes scCardIn {
+  from { opacity: 0; transform: scale(.8) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.br-shortcut:hover {
+  background: rgba(255,255,255,.1);
+  transform: translateY(-6px) scale(1.04);
+  box-shadow: 0 12px 36px rgba(0,0,0,.45);
+  border-color: rgba(255,255,255,.15);
+  color: var(--text);
+}
+.br-shortcut-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.08);
+  transition: background .2s;
+}
+.br-shortcut:hover .br-shortcut-icon { background: rgba(255,255,255,.12); }
+
+/* Fullscreen exit icon variant */
+.br-fullscreen-exit svg { display: none; }
+.br-fullscreen-exit .icon-exit { display: block; }
+
+/* Browser chrome transition animations */
+.browser-chrome { transition: box-shadow .3s; }
+.br-nav-btn { transition: color .15s, background .15s, transform .1s; }
+.br-nav-btn:active { transform: scale(.88); }
+
+/* Welcome shortcut stagger delays */
+.br-shortcut:nth-child(1) { animation-delay: .04s; }
+.br-shortcut:nth-child(2) { animation-delay: .07s; }
+.br-shortcut:nth-child(3) { animation-delay: .10s; }
+.br-shortcut:nth-child(4) { animation-delay: .13s; }
+.br-shortcut:nth-child(5) { animation-delay: .16s; }
+.br-shortcut:nth-child(6) { animation-delay: .19s; }
+.br-shortcut:nth-child(7) { animation-delay: .22s; }
+.br-shortcut:nth-child(8) { animation-delay: .25s; }
+.br-shortcut:nth-child(9) { animation-delay: .28s; }
+.br-shortcut:nth-child(10) { animation-delay: .31s; }
+.br-shortcut:nth-child(11) { animation-delay: .34s; }
+.br-shortcut:nth-child(12) { animation-delay: .37s; }
+
+/* br-tip tweaks */
+.br-tip {
+  font-size: 12px;
+  color: var(--text-faint);
+  max-width: 480px;
+  text-align: center;
+  margin: 0;
+}

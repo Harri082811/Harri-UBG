@@ -51501,13 +51501,17 @@ const DEFAULT_HOME_SHORTCUTS: HomeShortcut[] = [
 
 const BR_WELCOME_SHORTCUTS: HomeShortcut[] = [
   { url: "https://www.google.com", title: "Google" },
+  { url: "https://youtube.com", title: "YouTube" },
   { url: "https://wikipedia.org", title: "Wikipedia" },
-  { url: "https://khanacademy.org", title: "Khan" },
   { url: "https://quizlet.com", title: "Quizlet" },
+  { url: "https://khanacademy.org", title: "Khan" },
   { url: "https://scratch.mit.edu", title: "Scratch" },
   { url: "https://desmos.com/calculator", title: "Desmos" },
   { url: "https://coolmathgames.com", title: "Cool Math" },
   { url: "https://duolingo.com", title: "Duolingo" },
+  { url: "https://github.com", title: "GitHub" },
+  { url: "https://classroom.google.com", title: "Classroom" },
+  { url: "https://docs.google.com", title: "Docs" },
 ];
 
 function loadHomeShortcuts(): HomeShortcut[] {
@@ -51563,19 +51567,7 @@ function renderHomeShortcuts() {
     </span>
     <span class="home-sc-label">Add</span>
   `;
-  addBtn.addEventListener("click", () => {
-    const raw = prompt("Enter a URL to add as a shortcut:");
-    if (!raw) return;
-    const url = normBrUrl(raw);
-    if (!url) return;
-    let title = url;
-    try {
-      title = new URL(url).hostname.replace(/^www\./, "");
-    } catch {}
-    homeShortcuts.push({ url, title });
-    saveHomeShortcuts(homeShortcuts);
-    renderHomeShortcuts();
-  });
+  addBtn.addEventListener("click", () => openShortcutModal());
   container.appendChild(addBtn);
 }
 
@@ -51623,6 +51615,105 @@ function brFaviconUrl(url: string): string {
   } catch {
     return "";
   }
+}
+
+
+/* ============================================================
+   Shortcut modal
+   ============================================================ */
+function openShortcutModal() {
+  const overlay = document.getElementById("sc-modal-overlay");
+  const urlInput = document.getElementById("sc-modal-url") as HTMLInputElement;
+  const titleInput = document.getElementById("sc-modal-title") as HTMLInputElement;
+  const preview = document.getElementById("sc-modal-preview");
+  const fav = document.getElementById("sc-modal-fav") as HTMLImageElement;
+  const prevLabel = document.getElementById("sc-modal-prev-label");
+  if (!overlay) return;
+  urlInput.value = "";
+  titleInput.value = "";
+  if (preview) preview.hidden = true;
+  overlay.hidden = false;
+  urlInput.focus();
+
+  let previewTimer: ReturnType<typeof setTimeout> | null = null;
+  const updatePreview = () => {
+    const raw = urlInput.value.trim();
+    if (!raw) { if (preview) preview.hidden = true; return; }
+    const url = normBrUrl(raw);
+    if (!url) { if (preview) preview.hidden = true; return; }
+    try {
+      const hostname = new URL(url).hostname;
+      if (fav) fav.src = `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+      if (prevLabel) prevLabel.textContent = titleInput.value || hostname.replace(/^www\./, "");
+      if (preview) preview.hidden = false;
+    } catch { if (preview) preview.hidden = true; }
+  };
+  urlInput.addEventListener("input", () => {
+    if (previewTimer) clearTimeout(previewTimer);
+    previewTimer = setTimeout(updatePreview, 400);
+  });
+  titleInput.addEventListener("input", updatePreview);
+
+  const close = () => { overlay.hidden = true; };
+  const save = () => {
+    const raw = urlInput.value.trim();
+    if (!raw) { urlInput.focus(); return; }
+    const url = normBrUrl(raw);
+    if (!url) { urlInput.focus(); return; }
+    let title = titleInput.value.trim();
+    if (!title) {
+      try { title = new URL(url).hostname.replace(/^www\./, ""); } catch { title = url; }
+    }
+    homeShortcuts.push({ url, title });
+    saveHomeShortcuts(homeShortcuts);
+    renderHomeShortcuts();
+    overlay.hidden = true;
+  };
+
+  document.getElementById("sc-modal-close")?.addEventListener("click", close, { once: true });
+  document.getElementById("sc-modal-cancel")?.addEventListener("click", close, { once: true });
+  document.getElementById("sc-modal-save")?.addEventListener("click", save, { once: true });
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); }, { once: true });
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === "Enter") save();
+    if (e.key === "Escape") close();
+  };
+  document.addEventListener("keydown", onKey, { once: true });
+}
+
+/* ============================================================
+   Browser welcome clock & greeting
+   ============================================================ */
+function initBrClock() {
+  const clockEl = document.getElementById("br-clock");
+  const greetEl = document.getElementById("br-greeting");
+  if (!clockEl && !greetEl) return;
+  const tick = () => {
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const ampm = h >= 12 ? "PM" : "AM";
+    const hh = ((h % 12) || 12).toString().padStart(2, "0");
+    const mm = m.toString().padStart(2, "0");
+    if (clockEl) clockEl.textContent = `${hh}:${mm} ${ampm}`;
+    if (greetEl) {
+      const name = ["Good morning", "Good afternoon", "Good evening"][h < 12 ? 0 : h < 18 ? 1 : 2];
+      greetEl.textContent = name + " — what are we exploring today?";
+    }
+  };
+  tick();
+  setInterval(tick, 30000);
+}
+
+function initBrWelcomeSearch() {
+  const input = document.getElementById("br-welcome-input") as HTMLInputElement;
+  if (!input) return;
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const val = input.value.trim();
+      if (val) brNavigateTo(val);
+    }
+  });
 }
 
 function normBrUrl(raw: string): string {
@@ -51810,7 +51901,7 @@ async function brNavigateTo(rawUrl: string) {
         await navigator.serviceWorker.ready;
       } catch {}
     }
-    frame.src = `/uv/service/${encodeURIComponent(url)}`;
+    frame.src = url;
   }
 }
 
@@ -51844,7 +51935,7 @@ function initBrowser() {
     if (frame) {
       const tab = brTabs.find((t) => t.id === brActiveId);
       if (tab?.url) {
-        frame.src = `/uv/service/${encodeURIComponent(tab.url)}`;
+        frame.src = tab.url;
       } else {
         const src = frame.src;
         frame.src = "about:blank";
@@ -51855,9 +51946,30 @@ function initBrowser() {
     }
   });
 
-  document
-    .getElementById("br-newtab")
-    ?.addEventListener("click", () => brOpenTab(""));
+  document.getElementById("br-forward")?.addEventListener("click", () => {
+    try {
+      frame?.contentWindow?.history.forward();
+    } catch {}
+  });
+
+  document.getElementById("br-fullscreen")?.addEventListener("click", () => {
+    const vp = document.querySelector(".browser-viewport") as HTMLElement;
+    const btn = document.getElementById("br-fullscreen");
+    if (!document.fullscreenElement) {
+      (vp || document.documentElement).requestFullscreen?.();
+      if (btn) btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3"/></svg>`;
+    } else {
+      document.exitFullscreen?.();
+      if (btn) btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`;
+    }
+  });
+  document.addEventListener("fullscreenchange", () => {
+    const btn = document.getElementById("br-fullscreen");
+    if (!btn) return;
+    if (!document.fullscreenElement) {
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`;
+    }
+  });
 
   document.getElementById("br-bm-toggle")?.addEventListener("click", () => {
     if (urlInput) {
@@ -51946,6 +52058,8 @@ function initBrowser() {
   renderBrTabs();
   renderBrBookmarks();
   renderBrWelcomeShortcuts();
+  initBrWelcomeSearch();
+  initBrClock();
 }
 
 function initSearch() {
@@ -52006,11 +52120,6 @@ function showToast(msg: string) {
    ============================================================ */
 
 async function boot() {
-  // Register service worker for UV proxy
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/uv.sw.js").catch(() => {});
-  }
-
   applyTheme();
   applyCloak();
   applyBgEffects();

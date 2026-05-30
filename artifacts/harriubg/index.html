@@ -347,6 +347,9 @@
               <button class="br-nav-btn" id="br-back" title="Back">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
               </button>
+              <button class="br-nav-btn" id="br-forward" title="Forward">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
               <button class="br-nav-btn" id="br-refresh" title="Refresh">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
               </button>
@@ -360,7 +363,9 @@
               <button class="br-bookmark-btn" id="br-bm-toggle" title="Bookmark this page">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
               </button>
-              <button class="br-nav-btn" id="br-newtab" title="New tab" style="font-size:18px;font-weight:700;color:var(--text)">+</button>
+              <button class="br-nav-btn" id="br-fullscreen" title="Fullscreen">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+              </button>
             </div>
             <div class="br-progress" id="br-progress"></div>
             <div class="br-tabstrip" id="br-tabstrip"></div>
@@ -375,9 +380,15 @@
               style="display:none"
             ></iframe>
             <div class="br-welcome" id="br-welcome">
-              <h2>Where do you want to go <span>today?</span></h2>
+              <div class="br-welcome-clock" id="br-clock"></div>
+              <div class="br-welcome-greeting" id="br-greeting"></div>
+              <h2 class="br-welcome-title">Where do you want to go <span>today?</span></h2>
+              <div class="br-welcome-search">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input id="br-welcome-input" type="text" placeholder="Search or enter URL…" autocomplete="off" spellcheck="false" />
+              </div>
               <div class="br-shortcuts" id="br-shortcut-grid"></div>
-              <p class="br-tip">Some sites block embedding — use "Open in New Tab" if a page won't load.</p>
+              <p class="br-tip">Some sites may block embedding — use "Open in New Tab" if a page won't load.</p>
             </div>
             <div class="br-blocked" id="br-blocked">
               <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#6b7186"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
@@ -609,6 +620,38 @@
             allowfullscreen
             referrerpolicy="no-referrer"
           ></iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shortcut add modal -->
+    <div class="sc-modal-overlay" id="sc-modal-overlay" hidden>
+      <div class="sc-modal" id="sc-modal">
+        <div class="sc-modal-head">
+          <h3>Add Shortcut</h3>
+          <button class="sc-modal-close" id="sc-modal-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="sc-modal-body">
+          <label class="sc-modal-label" for="sc-modal-url">URL or search term</label>
+          <div class="sc-modal-input-wrap">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input id="sc-modal-url" type="text" placeholder="https://example.com" autocomplete="off" spellcheck="false" />
+          </div>
+          <label class="sc-modal-label" for="sc-modal-title">Label (optional)</label>
+          <div class="sc-modal-input-wrap">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            <input id="sc-modal-title" type="text" placeholder="My Site" autocomplete="off" />
+          </div>
+          <div class="sc-modal-preview" id="sc-modal-preview" hidden>
+            <img id="sc-modal-fav" width="20" height="20" alt="" />
+            <span id="sc-modal-prev-label"></span>
+          </div>
+        </div>
+        <div class="sc-modal-footer">
+          <button class="sc-modal-btn sc-modal-cancel" id="sc-modal-cancel">Cancel</button>
+          <button class="sc-modal-btn sc-modal-save" id="sc-modal-save">Add Shortcut</button>
         </div>
       </div>
     </div>
