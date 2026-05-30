@@ -51488,6 +51488,7 @@ const DEFAULT_BOOKMARKS: Bookmark[] = [
 ];
 
 const BR_STORAGE = "harriubg.browser.v1";
+const BR_SC_STORAGE = "harriubg.br-shortcuts.v1";
 const HOME_SC_STORAGE = "harriubg.home-shortcuts.v1";
 
 type HomeShortcut = { url: string; title: string };
@@ -51499,7 +51500,7 @@ const DEFAULT_HOME_SHORTCUTS: HomeShortcut[] = [
   { url: "https://quizlet.com", title: "Quizlet" },
 ];
 
-const BR_WELCOME_SHORTCUTS: HomeShortcut[] = [
+const DEFAULT_BR_SHORTCUTS: HomeShortcut[] = [
   { url: "https://www.google.com", title: "Google" },
   { url: "https://youtube.com", title: "YouTube" },
   { url: "https://wikipedia.org", title: "Wikipedia" },
@@ -51513,6 +51514,18 @@ const BR_WELCOME_SHORTCUTS: HomeShortcut[] = [
   { url: "https://classroom.google.com", title: "Classroom" },
   { url: "https://docs.google.com", title: "Docs" },
 ];
+
+function loadBrShortcuts(): HomeShortcut[] {
+  try {
+    const raw = localStorage.getItem(BR_SC_STORAGE);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [...DEFAULT_BR_SHORTCUTS];
+}
+function saveBrShortcuts(shortcuts: HomeShortcut[]) {
+  try { localStorage.setItem(BR_SC_STORAGE, JSON.stringify(shortcuts)); } catch {}
+}
+let brShortcuts: HomeShortcut[] = loadBrShortcuts();
 
 function loadHomeShortcuts(): HomeShortcut[] {
   try {
@@ -51575,19 +51588,46 @@ function renderBrWelcomeShortcuts() {
   const grid = document.getElementById("br-shortcut-grid");
   if (!grid) return;
   grid.innerHTML = "";
-  for (const sc of BR_WELCOME_SHORTCUTS) {
+  for (let i = 0; i < brShortcuts.length; i++) {
+    const sc = brShortcuts[i];
     const btn = document.createElement("button");
     btn.className = "br-shortcut";
     const fav = `https://www.google.com/s2/favicons?domain=${new URL(sc.url).hostname}&sz=32`;
     btn.innerHTML = `
+      <span class="br-sc-remove" title="Remove" data-idx="${i}">
+        <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </span>
       <div class="br-shortcut-icon">
         <img src="${fav}" width="24" height="24" alt="${escapeHtml(sc.title)}" onerror="this.style.opacity='.4'" />
       </div>
       <span>${escapeHtml(sc.title)}</span>
     `;
+    btn.querySelector<HTMLElement>(".br-sc-remove")!.addEventListener("click", (e) => {
+      e.stopPropagation();
+      brShortcuts.splice(i, 1);
+      saveBrShortcuts(brShortcuts);
+      renderBrWelcomeShortcuts();
+    });
     btn.addEventListener("click", () => brNavigateTo(sc.url));
     grid.appendChild(btn);
   }
+  // Add button
+  const addBtn = document.createElement("button");
+  addBtn.className = "br-shortcut br-shortcut-add";
+  addBtn.innerHTML = `
+    <div class="br-shortcut-icon">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </div>
+    <span>Add</span>
+  `;
+  addBtn.addEventListener("click", () => {
+    openShortcutModal((url, title) => {
+      brShortcuts.push({ url, title });
+      saveBrShortcuts(brShortcuts);
+      renderBrWelcomeShortcuts();
+    });
+  });
+  grid.appendChild(addBtn);
 }
 
 function loadBrowserState(): { bookmarks: Bookmark[] } {
@@ -51621,7 +51661,7 @@ function brFaviconUrl(url: string): string {
 /* ============================================================
    Shortcut modal
    ============================================================ */
-function openShortcutModal() {
+function openShortcutModal(onSave?: (url: string, title: string) => void) {
   const overlay = document.getElementById("sc-modal-overlay");
   const urlInput = document.getElementById("sc-modal-url") as HTMLInputElement;
   const titleInput = document.getElementById("sc-modal-title") as HTMLInputElement;
@@ -51664,9 +51704,13 @@ function openShortcutModal() {
     if (!title) {
       try { title = new URL(url).hostname.replace(/^www\./, ""); } catch { title = url; }
     }
-    homeShortcuts.push({ url, title });
-    saveHomeShortcuts(homeShortcuts);
-    renderHomeShortcuts();
+    if (onSave) {
+      onSave(url, title);
+    } else {
+      homeShortcuts.push({ url, title });
+      saveHomeShortcuts(homeShortcuts);
+      renderHomeShortcuts();
+    }
     overlay.hidden = true;
   };
 
@@ -51878,6 +51922,7 @@ async function brNavigateTo(rawUrl: string) {
   updateBrFavicon(url);
   updateSecureIcon(url);
   brSetLoading(true);
+  (window as any).__brNavHook?.(url);
   if (!brActiveId || !brTabs.find((t) => t.id === brActiveId)) {
     brOpenTab(url);
   } else {
@@ -51898,7 +51943,10 @@ async function brNavigateTo(rawUrl: string) {
     frame.style.display = "block";
     if ("serviceWorker" in navigator) {
       try {
-        await navigator.serviceWorker.ready;
+        await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise<void>((_, rej) => setTimeout(() => rej(new Error("sw timeout")), 3000)),
+        ]);
       } catch {}
     }
     frame.src = `/uv/service/${encodeURIComponent(url)}`;
@@ -51994,7 +52042,17 @@ function initBrowser() {
   let loadBlockTimer: ReturnType<typeof setTimeout> | null = null;
   const blocked = document.getElementById("br-blocked");
 
+  let loadingFallback: ReturnType<typeof setTimeout> | null = null;
+  const clearLoadingFallback = () => { if (loadingFallback) { clearTimeout(loadingFallback); loadingFallback = null; } };
+
+  // Fallback: if the load event never fires within 12s, clear the progress bar anyway
+  const startLoadingFallback = () => {
+    clearLoadingFallback();
+    loadingFallback = setTimeout(() => { brSetLoading(false); }, 12000);
+  };
+
   frame?.addEventListener("load", () => {
+    clearLoadingFallback();
     if (loadBlockTimer) {
       clearTimeout(loadBlockTimer);
       loadBlockTimer = null;
@@ -52027,6 +52085,7 @@ function initBrowser() {
 
   const origNavigate = brNavigateTo;
   (window as any).__brNavHook = (url: string) => {
+    startLoadingFallback();
     if (loadBlockTimer) clearTimeout(loadBlockTimer);
     blocked?.classList.remove("visible");
     loadBlockTimer = setTimeout(() => {
