@@ -1,0 +1,1 @@
+- [Scramjet IDB config codec](scramjet-idb-config.md) — codec must be stored as stringified functions, not live functions (IDB uses structured clone)

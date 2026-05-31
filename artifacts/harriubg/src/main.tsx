@@ -52070,7 +52070,7 @@ async function brNavigateTo(rawUrl: string) {
         ]);
       } catch {}
     }
-    frame.src = `/uv/service/${encodeURIComponent(url)}`;
+    frame.src = `/scramjet/${encodeURIComponent(url)}`;
   }
 }
 
@@ -52104,7 +52104,7 @@ function initBrowser() {
     if (frame) {
       const tab = brTabs.find((t) => t.id === brActiveId);
       if (tab?.url) {
-        frame.src = `/uv/service/${encodeURIComponent(tab.url)}`;
+        frame.src = `/scramjet/${encodeURIComponent(tab.url)}`;
       } else {
         const src = frame.src;
         frame.src = "about:blank";
@@ -52310,9 +52310,47 @@ function showToast(msg: string) {
    ============================================================ */
 
 async function boot() {
-  // Register service worker for UV proxy
+  // Register Scramjet service worker and store config in IDB
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/uv.sw.js").catch(() => {});
+    (async () => {
+      try {
+        const config = {
+          prefix: "/scramjet/",
+          files: {
+            wasm: "/scramjet.wasm.wasm",
+            all: "/scramjet.all.js",
+            bundle: "/scramjet.bundle.js",
+          },
+          // Scramjet stores codec as serialized function strings (not live functions)
+          codec: {
+            encode: "v=>v?encodeURIComponent(v):v",
+            decode: "v=>v?decodeURIComponent(v):v",
+          },
+          bare: "/api/bare/",
+          flags: {},
+        };
+        // Store config in IDB so the SW can load it on activation
+        await new Promise<void>((resolve, reject) => {
+          const req = indexedDB.open("$scramjet", 1);
+          req.onupgradeneeded = (e) => {
+            const db = (e.target as IDBOpenDBRequest).result;
+            if (!db.objectStoreNames.contains("config")) db.createObjectStore("config");
+          };
+          req.onsuccess = (e) => {
+            const db = (e.target as IDBOpenDBRequest).result;
+            const tx = db.transaction("config", "readwrite");
+            tx.objectStore("config").put(config, "config");
+            tx.oncomplete = () => { db.close(); resolve(); };
+            tx.onerror = () => reject(tx.error);
+          };
+          req.onerror = () => reject(req.error);
+        });
+        const reg = await navigator.serviceWorker.register("/scramjet.sw.js", { scope: "/" });
+        // Send config directly to SW so it activates without a reload
+        const sw = reg.installing || reg.waiting || reg.active;
+        sw?.postMessage({ scramjet$type: "loadConfig", config });
+      } catch {}
+    })();
   }
   applyTheme();
   applyCloak();

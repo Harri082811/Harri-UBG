@@ -3,6 +3,9 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { createBareServer } from "@tomphttp/bare-server-node";
+
+const bare = createBareServer("/bare/");
 
 const app: Express = express();
 
@@ -29,6 +32,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use((req, res, next) => {
+  if (bare.shouldRoute(req)) {
+    bare.routeRequest(req, res);
+  } else {
+    next();
+  }
+});
+
 app.use("/api", router);
 
+export { bare };
 export default app;

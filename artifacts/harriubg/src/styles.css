@@ -142,20 +142,20 @@ body {
 .tab {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 14px;
+  gap: 5px;
+  padding: 8px 13px;
   border: 0;
   background: transparent;
   color: var(--text-dim);
   font-family: var(--font-sans);
   font-weight: 500;
-  font-size: 14px;
+  font-size: 13.5px;
   border-radius: 10px;
   cursor: pointer;
   transition: color .22s, background .22s, transform .18s;
   line-height: 1;
 }
-.tab svg { flex-shrink: 0; }
+.tab svg { flex-shrink: 0; width: 14px; height: 14px; }
 .tab:hover { color: var(--text); background: rgba(255,255,255,.06); }
 .tab:active { transform: scale(.97); }
 .tab.active {
@@ -1280,10 +1280,11 @@ main {
   font-size: clamp(2.6rem, 5vw, 4rem);
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: rgba(220,245,255,0.88);
-  text-shadow:
-    0 0 10px rgba(34,211,238,0.35),
-    0 0 24px rgba(34,211,238,0.18);
+  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
   animation: greet-float 3.6s ease-in-out infinite;
   margin-top: 24px;
   margin-bottom: 0;
