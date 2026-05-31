@@ -7,7 +7,15 @@ addEventListener('install', (event) => {
 });
 
 addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
+  event.waitUntil(
+    sw.loadConfig().then(() => clients.claim())
+  );
+});
+
+addEventListener('message', (event) => {
+  if (event.data?.scramjet$type === 'loadConfig') {
+    sw.loadConfig();
+  }
 });
 
 addEventListener('fetch', (event) => {
