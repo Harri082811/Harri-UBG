@@ -162,7 +162,6 @@ async function loadGames(): Promise<void> {
     showToast("Couldn't load games. Check your connection.");
   }
 }
-
 /* ============================================================
    MOVIES — curated list, real posters fetched from TMDB at boot
    ============================================================ */
@@ -50605,7 +50604,7 @@ function initConstellation() {
 const DEFAULT_GREETINGS = [
   "Welcome back!",
   "Let's play something!",
-  "What are we watching today?",
+  "What are we searching today?",
   "Browse free, play anything!",
   "Ready to explore?",
   "Your playground awaits",
@@ -50903,14 +50902,6 @@ function renderShows(query = "") {
   const filtered = applySortMedia(base, showSort);
   empty.hidden = filtered.length > 0;
   filtered.forEach((s) => grid.appendChild(showCard(s)));
-}
-
-function renderStats() {
-  document.getElementById("stat-games")!.textContent =
-    GAMES.length > 0 ? String(GAMES.length) : "…";
-  document.getElementById("stat-movies")!.textContent = String(MOVIES.length);
-  const sShows = document.getElementById("stat-shows");
-  if (sShows) sShows.textContent = String(SHOWS.length);
 }
 
 /* ============================================================
@@ -51287,10 +51278,10 @@ const CLOAK_ICON_OPTIONS = [
 ];
 
 const SERVER_OPTIONS = [
-  { value: "vidsrc.cc", label: "Server 1 (recommended)" },
+  { value: "vidsrc.cc", label: "Server 1" },
   { value: "vidsrc.xyz", label: "Server 2" },
   { value: "embed.su", label: "Server 3" },
-  { value: "vidlink.pro", label: "Server 4" },
+  { value: "vidlink.pro", label: "Server 4 (recommended)" },
   { value: "2embed.cc", label: "Server 5" },
 ];
 
@@ -51477,14 +51468,10 @@ type BrowserTabEntry = { id: string; url: string; title: string };
 type Bookmark = { url: string; title: string };
 
 const DEFAULT_BOOKMARKS: Bookmark[] = [
-  { url: "https://www.google.com", title: "Google" },
-  { url: "https://wikipedia.org", title: "Wikipedia" },
-  { url: "https://khanacademy.org", title: "Khan Academy" },
-  { url: "https://quizlet.com", title: "Quizlet" },
-  { url: "https://coolmathgames.com", title: "Cool Math" },
-  { url: "https://scratch.mit.edu", title: "Scratch" },
-  { url: "https://desmos.com", title: "Desmos" },
-  { url: "https://duolingo.com", title: "Duolingo" },
+  { url: "https://youtube.com", title: "YouTube" },
+  { url: "https://github.com", title: "GitHub" },
+  { url: "https://instagram.com", title: "Instagram" },
+  { url: "https://tiktok.com", title: "TikTok" },
 ];
 
 const BR_STORAGE = "harriubg.browser.v1";
@@ -51494,25 +51481,15 @@ const HOME_SC_STORAGE = "harriubg.home-shortcuts.v1";
 type HomeShortcut = { url: string; title: string };
 
 const DEFAULT_HOME_SHORTCUTS: HomeShortcut[] = [
-  { url: "https://www.google.com", title: "Google" },
-  { url: "https://www.youtube.com", title: "YouTube" },
-  { url: "https://wikipedia.org", title: "Wikipedia" },
-  { url: "https://quizlet.com", title: "Quizlet" },
+  { url: "https://youtube.com", title: "YouTube" },
+  { url: "https://instagram.com", title: "Instagram" },
+  { url: "https://tiktok.com", title: "TikTok" },
 ];
 
 const DEFAULT_BR_SHORTCUTS: HomeShortcut[] = [
-  { url: "https://www.google.com", title: "Google" },
   { url: "https://youtube.com", title: "YouTube" },
-  { url: "https://wikipedia.org", title: "Wikipedia" },
-  { url: "https://quizlet.com", title: "Quizlet" },
-  { url: "https://khanacademy.org", title: "Khan" },
-  { url: "https://scratch.mit.edu", title: "Scratch" },
-  { url: "https://desmos.com/calculator", title: "Desmos" },
-  { url: "https://coolmathgames.com", title: "Cool Math" },
-  { url: "https://duolingo.com", title: "Duolingo" },
-  { url: "https://github.com", title: "GitHub" },
-  { url: "https://classroom.google.com", title: "Classroom" },
-  { url: "https://docs.google.com", title: "Docs" },
+  { url: "https://instagram.com", title: "Instagram" },
+  { url: "https://tiktok.com", title: "TikTok" },
 ];
 
 function loadBrShortcuts(): HomeShortcut[] {
@@ -51523,7 +51500,9 @@ function loadBrShortcuts(): HomeShortcut[] {
   return [...DEFAULT_BR_SHORTCUTS];
 }
 function saveBrShortcuts(shortcuts: HomeShortcut[]) {
-  try { localStorage.setItem(BR_SC_STORAGE, JSON.stringify(shortcuts)); } catch {}
+  try {
+    localStorage.setItem(BR_SC_STORAGE, JSON.stringify(shortcuts));
+  } catch {}
 }
 let brShortcuts: HomeShortcut[] = loadBrShortcuts();
 
@@ -51602,12 +51581,14 @@ function renderBrWelcomeShortcuts() {
       </div>
       <span>${escapeHtml(sc.title)}</span>
     `;
-    btn.querySelector<HTMLElement>(".br-sc-remove")!.addEventListener("click", (e) => {
-      e.stopPropagation();
-      brShortcuts.splice(i, 1);
-      saveBrShortcuts(brShortcuts);
-      renderBrWelcomeShortcuts();
-    });
+    btn
+      .querySelector<HTMLElement>(".br-sc-remove")!
+      .addEventListener("click", (e) => {
+        e.stopPropagation();
+        brShortcuts.splice(i, 1);
+        saveBrShortcuts(brShortcuts);
+        renderBrWelcomeShortcuts();
+      });
     btn.addEventListener("click", () => brNavigateTo(sc.url));
     grid.appendChild(btn);
   }
@@ -51657,14 +51638,15 @@ function brFaviconUrl(url: string): string {
   }
 }
 
-
 /* ============================================================
    Shortcut modal
    ============================================================ */
 function openShortcutModal(onSave?: (url: string, title: string) => void) {
   const overlay = document.getElementById("sc-modal-overlay");
   const urlInput = document.getElementById("sc-modal-url") as HTMLInputElement;
-  const titleInput = document.getElementById("sc-modal-title") as HTMLInputElement;
+  const titleInput = document.getElementById(
+    "sc-modal-title",
+  ) as HTMLInputElement;
   const preview = document.getElementById("sc-modal-preview");
   const fav = document.getElementById("sc-modal-fav") as HTMLImageElement;
   const prevLabel = document.getElementById("sc-modal-prev-label");
@@ -51678,15 +51660,26 @@ function openShortcutModal(onSave?: (url: string, title: string) => void) {
   let previewTimer: ReturnType<typeof setTimeout> | null = null;
   const updatePreview = () => {
     const raw = urlInput.value.trim();
-    if (!raw) { if (preview) preview.hidden = true; return; }
+    if (!raw) {
+      if (preview) preview.hidden = true;
+      return;
+    }
     const url = normBrUrl(raw);
-    if (!url) { if (preview) preview.hidden = true; return; }
+    if (!url) {
+      if (preview) preview.hidden = true;
+      return;
+    }
     try {
       const hostname = new URL(url).hostname;
-      if (fav) fav.src = `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
-      if (prevLabel) prevLabel.textContent = titleInput.value || hostname.replace(/^www\./, "");
+      if (fav)
+        fav.src = `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+      if (prevLabel)
+        prevLabel.textContent =
+          titleInput.value || hostname.replace(/^www\./, "");
       if (preview) preview.hidden = false;
-    } catch { if (preview) preview.hidden = true; }
+    } catch {
+      if (preview) preview.hidden = true;
+    }
   };
   urlInput.addEventListener("input", () => {
     if (previewTimer) clearTimeout(previewTimer);
@@ -51694,15 +51687,27 @@ function openShortcutModal(onSave?: (url: string, title: string) => void) {
   });
   titleInput.addEventListener("input", updatePreview);
 
-  const close = () => { overlay.hidden = true; };
+  const close = () => {
+    overlay.hidden = true;
+  };
   const save = () => {
     const raw = urlInput.value.trim();
-    if (!raw) { urlInput.focus(); return; }
+    if (!raw) {
+      urlInput.focus();
+      return;
+    }
     const url = normBrUrl(raw);
-    if (!url) { urlInput.focus(); return; }
+    if (!url) {
+      urlInput.focus();
+      return;
+    }
     let title = titleInput.value.trim();
     if (!title) {
-      try { title = new URL(url).hostname.replace(/^www\./, ""); } catch { title = url; }
+      try {
+        title = new URL(url).hostname.replace(/^www\./, "");
+      } catch {
+        title = url;
+      }
     }
     if (onSave) {
       onSave(url, title);
@@ -51714,10 +51719,22 @@ function openShortcutModal(onSave?: (url: string, title: string) => void) {
     overlay.hidden = true;
   };
 
-  document.getElementById("sc-modal-close")?.addEventListener("click", close, { once: true });
-  document.getElementById("sc-modal-cancel")?.addEventListener("click", close, { once: true });
-  document.getElementById("sc-modal-save")?.addEventListener("click", save, { once: true });
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); }, { once: true });
+  document
+    .getElementById("sc-modal-close")
+    ?.addEventListener("click", close, { once: true });
+  document
+    .getElementById("sc-modal-cancel")
+    ?.addEventListener("click", close, { once: true });
+  document
+    .getElementById("sc-modal-save")
+    ?.addEventListener("click", save, { once: true });
+  overlay.addEventListener(
+    "click",
+    (e) => {
+      if (e.target === overlay) close();
+    },
+    { once: true },
+  );
   const onKey = (e: KeyboardEvent) => {
     if (e.key === "Enter") save();
     if (e.key === "Escape") close();
@@ -51737,12 +51754,14 @@ function initBrClock() {
     const h = now.getHours();
     const m = now.getMinutes();
     const ampm = h >= 12 ? "PM" : "AM";
-    const hh = ((h % 12) || 12).toString().padStart(2, "0");
+    const hh = (h % 12 || 12).toString().padStart(2, "0");
     const mm = m.toString().padStart(2, "0");
     if (clockEl) clockEl.textContent = `${hh}:${mm} ${ampm}`;
     if (greetEl) {
-      const name = ["Good morning", "Good afternoon", "Good evening"][h < 12 ? 0 : h < 18 ? 1 : 2];
-      greetEl.textContent = name + " — what are we exploring today?";
+      const name = ["Good morning", "Good afternoon", "Good evening"][
+        h < 12 ? 0 : h < 18 ? 1 : 2
+      ];
+      greetEl.textContent = name + "";
     }
   };
   tick();
@@ -51945,7 +51964,9 @@ async function brNavigateTo(rawUrl: string) {
       try {
         await Promise.race([
           navigator.serviceWorker.ready,
-          new Promise<void>((_, rej) => setTimeout(() => rej(new Error("sw timeout")), 3000)),
+          new Promise<void>((_, rej) =>
+            setTimeout(() => rej(new Error("sw timeout")), 3000),
+          ),
         ]);
       } catch {}
     }
@@ -52005,10 +52026,12 @@ function initBrowser() {
     const btn = document.getElementById("br-fullscreen");
     if (!document.fullscreenElement) {
       (vp || document.documentElement).requestFullscreen?.();
-      if (btn) btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3"/></svg>`;
+      if (btn)
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3"/></svg>`;
     } else {
       document.exitFullscreen?.();
-      if (btn) btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`;
+      if (btn)
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`;
     }
   });
   document.addEventListener("fullscreenchange", () => {
@@ -52043,12 +52066,19 @@ function initBrowser() {
   const blocked = document.getElementById("br-blocked");
 
   let loadingFallback: ReturnType<typeof setTimeout> | null = null;
-  const clearLoadingFallback = () => { if (loadingFallback) { clearTimeout(loadingFallback); loadingFallback = null; } };
+  const clearLoadingFallback = () => {
+    if (loadingFallback) {
+      clearTimeout(loadingFallback);
+      loadingFallback = null;
+    }
+  };
 
   // Fallback: if the load event never fires within 12s, clear the progress bar anyway
   const startLoadingFallback = () => {
     clearLoadingFallback();
-    loadingFallback = setTimeout(() => { brSetLoading(false); }, 12000);
+    loadingFallback = setTimeout(() => {
+      brSetLoading(false);
+    }, 12000);
   };
 
   frame?.addEventListener("load", () => {
@@ -52197,11 +52227,9 @@ async function boot() {
   renderGames();
   renderMovies();
   renderShows();
-  renderStats();
 
   // Load games + movie/show posters in parallel
   await Promise.all([loadGames(), loadPosters()]);
-  renderStats();
   renderFeatured();
   renderGames(
     (document.getElementById("games-search") as HTMLInputElement).value,

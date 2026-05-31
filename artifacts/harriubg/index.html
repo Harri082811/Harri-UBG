@@ -26,14 +26,14 @@
       <div class="blob blob-5"></div>
     </div>
     <div class="shooting-stars" aria-hidden="true">
-      <span class="ss" style="left:7%;  --dur:7s;  --delay:0.3s"></span>
-      <span class="ss" style="left:19%; --dur:10s; --delay:2.8s"></span>
-      <span class="ss" style="left:34%; --dur:6.5s;--delay:5.1s"></span>
-      <span class="ss" style="left:51%; --dur:12s; --delay:1.4s"></span>
-      <span class="ss" style="left:64%; --dur:8s;  --delay:7.2s"></span>
-      <span class="ss" style="left:79%; --dur:9.5s;--delay:3.6s"></span>
-      <span class="ss" style="left:91%; --dur:11s; --delay:9s"></span>
-      <span class="ss" style="left:43%; --dur:7.5s;--delay:11s"></span>
+      <span class="ss" style="left: 7%; --dur: 7s; --delay: 0.3s"></span>
+      <span class="ss" style="left: 19%; --dur: 10s; --delay: 2.8s"></span>
+      <span class="ss" style="left: 34%; --dur: 6.5s; --delay: 5.1s"></span>
+      <span class="ss" style="left: 51%; --dur: 12s; --delay: 1.4s"></span>
+      <span class="ss" style="left: 64%; --dur: 8s; --delay: 7.2s"></span>
+      <span class="ss" style="left: 79%; --dur: 9.5s; --delay: 3.6s"></span>
+      <span class="ss" style="left: 91%; --dur: 11s; --delay: 9s"></span>
+      <span class="ss" style="left: 43%; --dur: 7.5s; --delay: 11s"></span>
     </div>
     <canvas id="constellation"></canvas>
 
@@ -73,12 +73,23 @@
           <span>Home</span>
         </button>
         <button class="tab" data-tab="browser">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M2 12h20"/>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20" />
+            <path
+              d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+            />
           </svg>
-          <span>Browser</span>
+          <span>Proxy</span>
         </button>
         <button class="tab" data-tab="games">
           <svg
@@ -164,37 +175,40 @@
       <!-- HOME -->
       <section class="view active" id="view-home">
         <div class="hero">
-          
-
           <div id="hero-greeting" class="hero-greeting">Welcome back!</div>
 
           <div class="hero-proxy">
             <div class="hero-proxy-bar">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="proxy-icon">
-                <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="proxy-icon"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m21 21-4.3-4.3" />
               </svg>
-              <input id="hero-proxy-input" type="text" placeholder="Search Google or enter any URL…" autocomplete="off" spellcheck="false" />
-              <button id="hero-proxy-go" class="btn btn-primary btn-sm">Go →</button>
+              <input
+                id="hero-proxy-input"
+                type="text"
+                placeholder="Search or enter URL…"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button id="hero-proxy-go" class="btn btn-primary btn-sm">
+                Go →
+              </button>
             </div>
             <div class="home-shortcuts" id="home-shortcuts"></div>
-          </div>
 
-          <div class="stats">
-            <div class="stat">
-              <span class="stat-value" id="stat-games">—</span
-              ><span class="stat-label">Games</span>
-            </div>
-            <div class="stat">
-              <span class="stat-value" id="stat-movies">—</span
-              ><span class="stat-label">Movies</span>
-            </div>
-            <div class="stat">
-              <span class="stat-value" id="stat-shows">—</span
-              ><span class="stat-label">Shows</span>
             </div>
           </div>
         </div>
-
         <div class="rail">
           <div class="rail-head">
             <h2>Featured games</h2>
@@ -341,30 +355,133 @@
         <div class="browser-wrap">
           <div class="browser-chrome">
             <div class="browser-urlrow">
-              <button class="br-nav-btn br-exit-btn" id="br-exit" title="Back to menu">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>
+              <button
+                class="br-nav-btn br-exit-btn"
+                id="br-exit"
+                title="Back to menu"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M3 9.5 12 3l9 6.5" />
+                  <path d="M5 10v10h14V10" />
+                  <path d="M10 20v-6h4v6" />
+                </svg>
               </button>
               <button class="br-nav-btn" id="br-back" title="Back">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
               </button>
               <button class="br-nav-btn" id="br-forward" title="Forward">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
               </button>
               <button class="br-nav-btn" id="br-refresh" title="Refresh">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
               </button>
               <div class="br-url-bar">
-                <img id="br-favicon" class="br-favicon" src="" alt="" style="display:none" />
+                <img
+                  id="br-favicon"
+                  class="br-favicon"
+                  src=""
+                  alt=""
+                  style="display: none"
+                />
                 <span id="br-lock" class="br-lock-icon" title="Not secure">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="13"
+                    height="13"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="3" y="11" width="18" height="11" rx="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
                 </span>
-                <input id="br-url-input" type="text" placeholder="Search or enter URL…" autocomplete="off" spellcheck="false" />
+                <input
+                  id="br-url-input"
+                  type="text"
+                  placeholder="Search or enter URL…"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
-              <button class="br-bookmark-btn" id="br-bm-toggle" title="Bookmark this page">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              <button
+                class="br-bookmark-btn"
+                id="br-bm-toggle"
+                title="Bookmark this page"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                </svg>
               </button>
               <button class="br-nav-btn" id="br-fullscreen" title="Fullscreen">
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  width="15"
+                  height="15"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"
+                  />
+                </svg>
               </button>
             </div>
             <div class="br-progress" id="br-progress"></div>
@@ -377,24 +494,61 @@
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-pointer-lock"
               referrerpolicy="no-referrer"
               allow="fullscreen; autoplay"
-              style="display:none"
+              style="display: none"
             ></iframe>
             <div class="br-welcome" id="br-welcome">
               <div class="br-welcome-clock" id="br-clock"></div>
               <div class="br-welcome-greeting" id="br-greeting"></div>
-              <h2 class="br-welcome-title">Where do you want to go <span>today?</span></h2>
+              <h2 class="br-welcome-title">
+                Where do you want to go <span>today?</span>
+              </h2>
               <div class="br-welcome-search">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input id="br-welcome-input" type="text" placeholder="Search or enter URL…" autocomplete="off" spellcheck="false" />
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                  id="br-welcome-input"
+                  type="text"
+                  placeholder="Search or enter URL…"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
               <div class="br-shortcuts" id="br-shortcut-grid"></div>
-              <p class="br-tip">Some sites may block embedding — use "Open in New Tab" if a page won't load.</p>
             </div>
             <div class="br-blocked" id="br-blocked">
-              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#6b7186"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+              <svg
+                viewBox="0 0 24 24"
+                width="48"
+                height="48"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="color: #6b7186"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="m4.9 4.9 14.2 14.2" />
+              </svg>
               <h3>Site blocked embedding</h3>
-              <p>This site won't display inside another page. Open it directly in a new tab instead.</p>
-              <button class="btn btn-primary" id="br-open-newtab">Open in New Tab</button>
+              <p>
+                This site won't display inside another page. Open it directly in
+                a new tab instead.
+              </p>
+              <button class="btn btn-primary" id="br-open-newtab">
+                Open in New Tab
+              </button>
             </div>
           </div>
         </div>
@@ -630,19 +784,70 @@
         <div class="sc-modal-head">
           <h3>Add Shortcut</h3>
           <button class="sc-modal-close" id="sc-modal-close" aria-label="Close">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+            >
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
           </button>
         </div>
         <div class="sc-modal-body">
-          <label class="sc-modal-label" for="sc-modal-url">URL or search term</label>
+          <label class="sc-modal-label" for="sc-modal-url"
+            >URL or search term</label
+          >
           <div class="sc-modal-input-wrap">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input id="sc-modal-url" type="text" placeholder="https://example.com" autocomplete="off" spellcheck="false" />
+            <svg
+              viewBox="0 0 24 24"
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              id="sc-modal-url"
+              type="text"
+              placeholder="https://example.com"
+              autocomplete="off"
+              spellcheck="false"
+            />
           </div>
-          <label class="sc-modal-label" for="sc-modal-title">Label (optional)</label>
+          <label class="sc-modal-label" for="sc-modal-title"
+            >Label (optional)</label
+          >
           <div class="sc-modal-input-wrap">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-            <input id="sc-modal-title" type="text" placeholder="My Site" autocomplete="off" />
+            <svg
+              viewBox="0 0 24 24"
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"
+              />
+              <line x1="7" y1="7" x2="7.01" y2="7" />
+            </svg>
+            <input
+              id="sc-modal-title"
+              type="text"
+              placeholder="My Site"
+              autocomplete="off"
+            />
           </div>
           <div class="sc-modal-preview" id="sc-modal-preview" hidden>
             <img id="sc-modal-fav" width="20" height="20" alt="" />
@@ -650,8 +855,12 @@
           </div>
         </div>
         <div class="sc-modal-footer">
-          <button class="sc-modal-btn sc-modal-cancel" id="sc-modal-cancel">Cancel</button>
-          <button class="sc-modal-btn sc-modal-save" id="sc-modal-save">Add Shortcut</button>
+          <button class="sc-modal-btn sc-modal-cancel" id="sc-modal-cancel">
+            Cancel
+          </button>
+          <button class="sc-modal-btn sc-modal-save" id="sc-modal-save">
+            Add Shortcut
+          </button>
         </div>
       </div>
     </div>
