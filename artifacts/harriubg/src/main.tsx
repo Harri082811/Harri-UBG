@@ -50430,9 +50430,9 @@ function rebuildStars() {
   stars = new Array(STAR_DENSITY).fill(0).map(() => ({
     x: Math.random() * w,
     y: Math.random() * h,
-    vx: (Math.random() - 0.5) * 0.22,
-    vy: Math.random() * 0.24 + 0.07,
-    r: Math.random() * 1.5 + 0.4,
+    vx: (Math.random() - 0.5) * 0.55,
+    vy: (Math.random() - 0.5) * 0.55,
+    r: Math.random() * 2.2 + 0.9,
   }));
 }
 
@@ -50449,10 +50449,8 @@ function tick() {
     s.y += s.vy;
     if (s.x < -5) s.x = w + 5;
     if (s.x > w + 5) s.x = -5;
-    if (s.y > h + 5) {
-      s.y = -5;
-      s.x = Math.random() * w;
-    }
+    if (s.y > h + 5) { s.y = -5; s.x = Math.random() * w; }
+    if (s.y < -5) { s.y = h + 5; s.x = Math.random() * w; }
 
     ctx.beginPath();
     ctx.fillStyle = `rgba(${starColor}, ${0.55 + s.r * 0.25})`;
@@ -50635,6 +50633,7 @@ function rotateGreeting() {
   el.textContent = list[idx];
 }
 
+let gamesNoticeSeen = false;
 function setTab(tab: Tab) {
   document.querySelectorAll<HTMLButtonElement>(".tab").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.tab === tab);
@@ -50646,6 +50645,26 @@ function setTab(tab: Tab) {
   window.scrollTo({ top: 0, behavior: "smooth" });
   history.replaceState(null, "", `#${tab}`);
   if (tab === "home") rotateGreeting();
+  if (tab === "browser" && brTabs.length === 0) {
+    brOpenTab("");
+  }
+  if (tab === "games" && !gamesNoticeSeen) {
+    gamesNoticeSeen = true;
+    showGamesNotice();
+  }
+}
+
+function showGamesNotice() {
+  const overlay = document.getElementById("games-notice-overlay");
+  if (!overlay) return;
+  overlay.hidden = false;
+  overlay.style.animation = "none";
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    overlay.style.animation = "";
+  }));
+  const close = () => { overlay.hidden = true; };
+  document.getElementById("games-notice-ok")?.addEventListener("click", close, { once: true });
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); }, { once: true });
 }
 
 function initTabs() {
@@ -51742,6 +51761,82 @@ function openShortcutModal(onSave?: (url: string, title: string) => void) {
   document.addEventListener("keydown", onKey, { once: true });
 }
 
+
+/* ============================================================
+   Browser DevTools panel
+   ============================================================ */
+let devtoolsOpen = false;
+let devtoolsConsoleLog: string[] = [];
+let devtoolsNetworkLog: string[] = [];
+
+function toggleDevtools() {
+  devtoolsOpen = !devtoolsOpen;
+  const panel = document.getElementById("br-devtools-panel");
+  if (!panel) return;
+  panel.classList.toggle("open", devtoolsOpen);
+}
+
+function devtoolsLog(type: "console" | "network", msg: string) {
+  const now = new Date().toLocaleTimeString("en-US", { hour12: false });
+  const entry = `[${now}] ${msg}`;
+  if (type === "console") {
+    devtoolsConsoleLog.push(entry);
+    if (devtoolsConsoleLog.length > 200) devtoolsConsoleLog.shift();
+  } else {
+    devtoolsNetworkLog.push(entry);
+    if (devtoolsNetworkLog.length > 200) devtoolsNetworkLog.shift();
+  }
+  if (devtoolsOpen) renderDevtoolsTab();
+}
+
+function renderDevtoolsTab() {
+  const active = document.querySelector<HTMLButtonElement>(".br-dt-tab.active");
+  const pane = document.getElementById("br-dt-pane");
+  if (!pane || !active) return;
+  const which = active.dataset.dtTab;
+  if (which === "network") {
+    pane.innerHTML = devtoolsNetworkLog.length
+      ? devtoolsNetworkLog.map(l => `<div class="br-dt-line br-dt-net">${escapeHtml(l)}</div>`).join("")
+      : '<div class="br-dt-empty">No network requests yet.</div>';
+  } else if (which === "console") {
+    pane.innerHTML = devtoolsConsoleLog.length
+      ? devtoolsConsoleLog.map(l => `<div class="br-dt-line">${escapeHtml(l)}</div>`).join("")
+      : '<div class="br-dt-empty">No console messages.</div>';
+  } else {
+    const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+    const tab = brTabs.find(t => t.id === brActiveId);
+    pane.innerHTML = `
+      <div class="br-dt-info-row"><span class="br-dt-key">URL</span><span class="br-dt-val">${escapeHtml(tab?.url || "(none)")}</span></div>
+      <div class="br-dt-info-row"><span class="br-dt-key">Title</span><span class="br-dt-val">${escapeHtml(tab?.title || "(none)")}</span></div>
+      <div class="br-dt-info-row"><span class="br-dt-key">Protocol</span><span class="br-dt-val">${tab?.url?.startsWith("https") ? "HTTPS ✓" : tab?.url?.startsWith("http") ? "HTTP (not secure)" : "-"}</span></div>
+      <div class="br-dt-info-row"><span class="br-dt-key">Proxy route</span><span class="br-dt-val">/api/proxy via SW</span></div>
+      <div class="br-dt-info-row"><span class="br-dt-key">Sandbox</span><span class="br-dt-val">allow-scripts allow-same-origin allow-forms allow-popups</span></div>
+    `;
+  }
+  pane.scrollTop = pane.scrollHeight;
+}
+
+function initDevtools() {
+  document.getElementById("br-devtools-btn")?.addEventListener("click", toggleDevtools);
+  document.getElementById("br-dt-close")?.addEventListener("click", () => {
+    devtoolsOpen = false;
+    document.getElementById("br-devtools-panel")?.classList.remove("open");
+  });
+  document.querySelectorAll<HTMLButtonElement>(".br-dt-tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".br-dt-tab").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderDevtoolsTab();
+    });
+  });
+  // Intercept SW messages for network tab
+  navigator.serviceWorker?.addEventListener("message", (evt) => {
+    if (evt.data?.type === "proxy-request") {
+      devtoolsLog("network", `→ ${evt.data.method || "GET"} ${evt.data.url}`);
+    }
+  });
+}
+
 /* ============================================================
    Browser welcome clock & greeting
    ============================================================ */
@@ -51839,14 +51934,19 @@ function brShowWelcome() {
   const frame = document.getElementById("br-frame") as HTMLIFrameElement;
   const welcome = document.getElementById("br-welcome");
   const blocked = document.getElementById("br-blocked");
+  // Clear address bar state for new tab
+  const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
+  if (urlInput) urlInput.value = "";
+  const favicon = document.getElementById("br-favicon") as HTMLImageElement;
+  if (favicon) { favicon.src = ""; favicon.style.display = "none"; }
+  const lock = document.getElementById("br-lock");
+  if (lock) lock.style.color = "rgba(255,255,255,0.25)";
   if (frame) {
     frame.src = "about:blank";
     frame.style.display = "none";
   }
   if (welcome) welcome.style.display = "flex";
   if (blocked) blocked.classList.remove("visible");
-  const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
-  if (urlInput) urlInput.value = "";
   updateBmToggle("");
 }
 
@@ -52147,6 +52247,7 @@ function initBrowser() {
   renderBrTabs();
   renderBrBookmarks();
   renderBrWelcomeShortcuts();
+  initDevtools();
   initBrWelcomeSearch();
   initBrClock();
 }

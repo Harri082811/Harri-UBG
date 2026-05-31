@@ -3,6 +3,15 @@ const PREFIX = '/uv/service/';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', evt => evt.waitUntil(clients.claim()));
 
+async function notifyClients(url, method) {
+  try {
+    const all = await self.clients.matchAll({ type: 'window' });
+    for (const c of all) {
+      c.postMessage({ type: 'proxy-request', url, method });
+    }
+  } catch {}
+}
+
 async function proxyReq(targetUrl, req) {
   const u = new URL(self.location.origin + '/api/proxy');
   u.searchParams.set('url', targetUrl);
@@ -19,6 +28,7 @@ async function proxyReq(targetUrl, req) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     try { init.body = await req.arrayBuffer(); } catch {}
   }
+  notifyClients(targetUrl, req.method);
   try {
     return await fetch(u.toString(), init);
   } catch (e) {

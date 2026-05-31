@@ -468,19 +468,14 @@
                 </svg>
               </button>
               <button class="br-nav-btn" id="br-fullscreen" title="Fullscreen">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="15"
-                  height="15"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path
-                    d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"
-                  />
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+              </button>
+              <button class="br-nav-btn" id="br-devtools-btn" title="DevTools">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="16 18 22 12 16 6"/>
+                  <polyline points="8 6 2 12 8 18"/>
                 </svg>
               </button>
             </div>
@@ -526,6 +521,21 @@
               </div>
               <div class="br-shortcuts" id="br-shortcut-grid"></div>
             </div>
+            <!-- DevTools panel -->
+            <div class="br-devtools-panel" id="br-devtools-panel">
+              <div class="br-dt-header">
+                <div class="br-dt-tabs">
+                  <button class="br-dt-tab active" data-dt-tab="info">Info</button>
+                  <button class="br-dt-tab" data-dt-tab="console">Console</button>
+                  <button class="br-dt-tab" data-dt-tab="network">Network</button>
+                </div>
+                <button class="br-dt-close" id="br-dt-close" title="Close DevTools">✕</button>
+              </div>
+              <div class="br-dt-pane" id="br-dt-pane">
+                <div class="br-dt-empty">Open a page to inspect it.</div>
+              </div>
+            </div>
+
             <div class="br-blocked" id="br-blocked">
               <svg
                 viewBox="0 0 24 24"
@@ -868,5 +878,19 @@
     <div class="toast" id="toast" hidden></div>
 
     <script type="module" src="/src/main.tsx"></script>
-  </body>
+  
+      <!-- Games notice modal -->
+      <div class="games-notice-overlay" id="games-notice-overlay" hidden>
+        <div class="games-notice-card">
+          <div class="games-notice-icon">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <h3>Heads up!</h3>
+          <p>Not all games work due to how they're hosted. Flash games won't run, and some may load slowly or partially. Most HTML5 games work great!</p>
+          <button class="btn btn-primary" id="games-notice-ok">Got it, let's play</button>
+        </div>
+      </div>
+</body>
 </html>

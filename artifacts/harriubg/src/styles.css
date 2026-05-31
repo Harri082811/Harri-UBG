@@ -150,9 +150,9 @@ body {
   font-family: var(--font-sans);
   font-weight: 500;
   font-size: 14px;
-  border-radius: 999px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: color .2s, background .2s, transform .15s;
+  transition: color .22s, background .22s, transform .18s;
   line-height: 1;
 }
 .tab svg { flex-shrink: 0; }
@@ -198,7 +198,7 @@ main {
    ============================================================ */
 .hero {
   position: relative;
-  padding: 60px 0 48px;
+  padding: 88px 0 64px;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -1280,11 +1280,10 @@ main {
   font-size: clamp(2.6rem, 5vw, 4rem);
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--accent-1);
+  color: rgba(220,245,255,0.88);
   text-shadow:
-    0 0 18px var(--accent-1),
-    0 0 40px var(--accent-1),
-    0 0 80px var(--accent-2);
+    0 0 10px rgba(34,211,238,0.35),
+    0 0 24px rgba(34,211,238,0.18);
   animation: greet-float 3.6s ease-in-out infinite;
   margin-top: 24px;
   margin-bottom: 0;
@@ -1491,10 +1490,10 @@ body.br-active #view-browser {
   backdrop-filter: blur(24px);
   border-bottom: 1px solid rgba(255,255,255,0.07);
   box-shadow: 0 4px 24px rgba(0,0,0,0.5);
-  padding: 10px 14px 0;
+  padding: 12px 14px 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .browser-urlrow {
@@ -1504,9 +1503,9 @@ body.br-active #view-browser {
 }
 
 .br-nav-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   background: rgba(255,255,255,.04);
   border: 1px solid var(--border);
   color: var(--text-dim);
@@ -1948,12 +1947,11 @@ body.br-active #view-browser {
 }
 .sc-modal-cancel:hover { background: rgba(255,255,255,.1); color: var(--text); }
 .sc-modal-save {
-  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 4px 16px rgba(34,211,238,.25);
+  background: rgba(255,255,255,.08);
+  color: var(--text);
+  border-color: rgba(255,255,255,.12);
 }
-.sc-modal-save:hover { box-shadow: 0 6px 22px rgba(34,211,238,.4); filter: brightness(1.1); }
+.sc-modal-save:hover { background: rgba(255,255,255,.14); color: #fff; }
 
 /* ============================================================
    Welcome screen enhancements
@@ -2143,5 +2141,163 @@ body.br-active #view-browser {
   color: var(--text-faint);
   max-width: 480px;
   text-align: center;
+  margin: 0;
+}
+
+/* ============================================================
+   DevTools panel
+   ============================================================ */
+.br-devtools-panel {
+  position: absolute;
+  top: 0; right: 0;
+  width: 380px;
+  max-width: 90vw;
+  height: 100%;
+  background: rgba(8,6,20,0.97);
+  backdrop-filter: blur(24px);
+  border-left: 1px solid rgba(255,255,255,.09);
+  display: flex;
+  flex-direction: column;
+  z-index: 200;
+  transform: translateX(100%);
+  transition: transform .28s cubic-bezier(.22,1,.36,1);
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+}
+.br-devtools-panel.open { transform: translateX(0); }
+.br-dt-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  flex-shrink: 0;
+  background: rgba(255,255,255,.02);
+}
+.br-dt-tabs {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+}
+.br-dt-tab {
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.br-dt-tab:hover { color: var(--text); }
+.br-dt-tab.active { color: var(--accent-1); border-bottom-color: var(--accent-1); }
+.br-dt-close {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 6px;
+  border-radius: 6px;
+  transition: color .15s, background .15s;
+}
+.br-dt-close:hover { color: var(--text); background: rgba(255,255,255,.07); }
+.br-dt-pane {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.br-dt-empty {
+  color: var(--text-faint);
+  text-align: center;
+  margin-top: 40px;
+  font-family: var(--font-sans);
+}
+.br-dt-line {
+  color: rgba(220,240,255,.7);
+  padding: 2px 4px;
+  border-radius: 3px;
+  word-break: break-all;
+  line-height: 1.5;
+}
+.br-dt-net { color: rgba(100,210,255,.8); }
+.br-dt-info-row {
+  display: flex;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  align-items: flex-start;
+}
+.br-dt-key {
+  color: var(--text-dim);
+  min-width: 80px;
+  flex-shrink: 0;
+  font-family: var(--font-sans);
+}
+.br-dt-val {
+  color: var(--text);
+  word-break: break-all;
+  font-family: var(--font-mono, monospace);
+}
+#br-devtools-btn.active { color: var(--accent-1); }
+
+/* ============================================================
+   Games notice modal
+   ============================================================ */
+.games-notice-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9100;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,.6);
+  backdrop-filter: blur(10px);
+  animation: fadeIn .3s ease;
+}
+.games-notice-overlay[hidden] { display: none !important; }
+.games-notice-card {
+  background: rgba(12,9,28,0.97);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 20px;
+  padding: 32px 28px;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.6);
+  animation: scaleIn .3s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.games-notice-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(34,211,238,.1);
+  border: 1px solid rgba(34,211,238,.2);
+  display: grid;
+  place-items: center;
+  color: var(--accent-1);
+}
+.games-notice-card h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.games-notice-card p {
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
   margin: 0;
 }
