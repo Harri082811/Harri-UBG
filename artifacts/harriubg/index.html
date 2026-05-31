@@ -473,6 +473,7 @@
                   <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
                 </svg>
               </button>
+              <div class="br-bookmarks" id="br-bookmarks"></div>
               <button class="br-nav-btn" id="br-devtools-btn" title="DevTools">
                 <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="16 18 22 12 16 6"/>
@@ -481,12 +482,11 @@
               </button>
             </div>
             <div class="br-progress" id="br-progress"></div>
-            <div class="br-bookmarks" id="br-bookmarks"></div>
           </div>
           <div class="browser-viewport">
             <iframe
               id="br-frame"
-              sandbox="allow-scripts allow-forms allow-popups allow-downloads allow-pointer-lock"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-pointer-lock"
               referrerpolicy="no-referrer"
               allow="fullscreen; autoplay"
               style="display: none"

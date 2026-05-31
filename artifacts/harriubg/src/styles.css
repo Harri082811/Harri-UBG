@@ -1502,6 +1502,8 @@ body.br-active #view-browser {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .br-nav-btn {
@@ -1684,30 +1686,38 @@ body.br-active #view-browser {
 .br-bookmarks {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
   overflow-x: auto;
   scrollbar-width: none;
-  padding: 1px 0;
+  flex: 1;
+  min-width: 0;
+  border-left: 1px solid var(--border);
+  padding-left: 8px;
+  margin-left: 2px;
 }
+.br-bookmarks:empty { display: none; }
 .br-bookmarks::-webkit-scrollbar { display: none; }
 .br-bm {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
+  gap: 4px;
+  padding: 3px 8px;
   border-radius: 6px;
   background: transparent;
   border: none;
   color: var(--text-dim);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11.5px;
   font-family: var(--font-sans);
   white-space: nowrap;
   flex-shrink: 0;
   transition: color .15s, background .15s;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .br-bm:hover { color: var(--text); background: rgba(255,255,255,.07); }
-.br-bm-favicon { border-radius: 3px; }
+.br-bm-favicon { border-radius: 3px; flex-shrink: 0; }
 
 /* Browser viewport */
 .browser-viewport {
