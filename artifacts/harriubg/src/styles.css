@@ -136,7 +136,7 @@ body {
 .tabs {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
 }
 
 .tab {
@@ -1285,11 +1285,8 @@ main {
   letter-spacing: 0.04em;
   color: var(--accent-1);
   text-shadow:
-    0 0 12px var(--accent-1),
-    0 0 40px var(--accent-1),
-    0 0 80px var(--accent-glow),
-    0 0 140px var(--accent-glow),
-    0 0 220px rgba(34,211,238,0.25);
+    0 0 20px var(--accent-1),
+    0 0 60px var(--accent-glow);
   animation: greet-float 3.6s ease-in-out infinite;
   margin-top: 24px;
   margin-bottom: 0;
