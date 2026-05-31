@@ -93,7 +93,7 @@ body {
   border-radius: 999px;
   box-shadow: 0 8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07);
   white-space: nowrap;
-  max-width: min(94vw, 860px);
+  max-width: min(96vw, 1080px);
 }
 
 .topbar-spacer { display: none; }
@@ -1502,8 +1502,6 @@ body.br-active #view-browser {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 0;
-  overflow: hidden;
 }
 
 .br-nav-btn {
@@ -1686,38 +1684,34 @@ body.br-active #view-browser {
 .br-bookmarks {
   display: flex;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
   overflow-x: auto;
   scrollbar-width: none;
-  flex: 1;
-  min-width: 0;
-  border-left: 1px solid var(--border);
-  padding-left: 8px;
-  margin-left: 2px;
+  padding: 2px 6px;
+  border-top: 1px solid rgba(255,255,255,.05);
+  background: rgba(0,0,0,.15);
+  min-height: 28px;
 }
 .br-bookmarks:empty { display: none; }
 .br-bookmarks::-webkit-scrollbar { display: none; }
 .br-bm {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
+  gap: 5px;
+  padding: 3px 10px;
   border-radius: 6px;
   background: transparent;
   border: none;
   color: var(--text-dim);
   cursor: pointer;
-  font-size: 11.5px;
+  font-size: 12px;
   font-family: var(--font-sans);
   white-space: nowrap;
   flex-shrink: 0;
   transition: color .15s, background .15s;
-  max-width: 110px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .br-bm:hover { color: var(--text); background: rgba(255,255,255,.07); }
-.br-bm-favicon { border-radius: 3px; flex-shrink: 0; }
+.br-bm-favicon { border-radius: 3px; }
 
 /* Browser viewport */
 .browser-viewport {

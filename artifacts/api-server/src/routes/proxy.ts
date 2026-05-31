@@ -110,21 +110,71 @@ async function safeFetch(
   throw new Error("Too many redirects");
 }
 
-/** Inject <base href> into the <head> of an HTML document so relative URLs resolve correctly. */
+/** Inject <base href> + nav-intercept script so relative URLs and link clicks route through proxy */
 function injectBase(html: string, baseUrl: string): string {
-  const tag = `<base href="${baseUrl.replace(/"/g, "&quot;")}">`;
-  // Insert after existing <base> if present (replace it), or right after <head>
-  if (/<base\s[^>]*href/i.test(html)) {
-    return html.replace(/<base\s[^>]*>/i, tag);
+  const baseTag = `<base href="${baseUrl.replace(/"/g, "&quot;")}">`;
+
+  // Navigation interceptor: rewrites link clicks + form submits + pushState to stay in proxy
+  const navScript = `<script>
+(function(){
+  var PFX='/uv/service/';
+  function wrap(u){
+    try{
+      var a=new URL(u,document.baseURI).href;
+      if(a.startsWith('http://')||a.startsWith('https://'))
+        return PFX+encodeURIComponent(a);
+    }catch(e){}
+    return u;
   }
-  // Try to insert after <head> tag
+  // Link clicks
+  document.addEventListener('click',function(e){
+    var n=e.target;
+    for(var i=0;i<5;i++){
+      if(!n||n===document)break;
+      if(n.tagName==='A'){
+        var h=n.getAttribute('href');
+        if(h&&!h.startsWith('#')&&!h.startsWith('javascript:')){
+          var w=wrap(h);
+          if(w!==h){e.preventDefault();e.stopPropagation();location.href=w;}
+        }
+        break;
+      }
+      n=n.parentElement;
+    }
+  },true);
+  // Form submits (GET)
+  document.addEventListener('submit',function(e){
+    var f=e.target;
+    if(!f||!f.action)return;
+    var m=(f.method||'get').toLowerCase();
+    if(m==='get'){
+      var w=wrap(f.action);
+      if(w!==f.action){e.preventDefault();location.href=w+'?'+new URLSearchParams(new FormData(f));}
+    }
+  },true);
+  // history.pushState / replaceState
+  function patchHistory(fn){
+    return function(s,t,u){
+      if(u){var w=wrap(String(u));if(w!==u){location.href=w;return;}}
+      return fn.apply(this,arguments);
+    };
+  }
+  try{history.pushState=patchHistory(history.pushState);}catch(e){}
+  try{history.replaceState=patchHistory(history.replaceState);}catch(e){}
+})();
+</script>`;
+
+  const injection = baseTag + navScript;
+
+  if (/<base\s[^>]*href/i.test(html)) {
+    return html.replace(/<base\s[^>]*>/i, injection);
+  }
   const headMatch = html.match(/<head[^>]*>/i);
   if (headMatch && headMatch.index !== undefined) {
     const insertAt = headMatch.index + headMatch[0].length;
-    return html.slice(0, insertAt) + tag + html.slice(insertAt);
+    return html.slice(0, insertAt) + injection + html.slice(insertAt);
   }
-  // Fallback: prepend
-  return tag + html;
+  return injection + html;
 }
 
 router.get("/proxy", async (req: Request, res: ExpressResponse) => {
