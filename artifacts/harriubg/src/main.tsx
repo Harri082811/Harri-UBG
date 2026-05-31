@@ -52062,12 +52062,23 @@ async function brNavigateTo(rawUrl: string) {
     frame.style.display = "block";
     if ("serviceWorker" in navigator) {
       try {
-        await Promise.race([
-          navigator.serviceWorker.ready,
-          new Promise<void>((_, rej) =>
-            setTimeout(() => rej(new Error("sw timeout")), 3000),
-          ),
-        ]);
+        // Wait for SW to be active AND controlling the page
+        await navigator.serviceWorker.ready;
+        if (!navigator.serviceWorker.controller) {
+          await Promise.race([
+            new Promise<void>((resolve) => {
+              if (navigator.serviceWorker.controller) { resolve(); return; }
+              navigator.serviceWorker.addEventListener(
+                "controllerchange",
+                () => resolve(),
+                { once: true },
+              );
+            }),
+            new Promise<void>((_, rej) =>
+              setTimeout(() => rej(new Error("sw timeout")), 5000),
+            ),
+          ]);
+        }
       } catch {}
     }
     frame.src = `/scramjet/${encodeURIComponent(url)}`;

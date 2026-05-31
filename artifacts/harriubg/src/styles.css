@@ -78,21 +78,22 @@ body {
    ============================================================ */
 .topbar {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 100;
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 8px 28px;
+  padding: 7px 7px 7px 20px;
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
-  background: rgba(8, 6, 20, 0.93);
-  border-bottom: 1px solid rgba(255,255,255,0.09);
-  border-radius: 0;
-  box-shadow: 0 2px 24px rgba(0,0,0,0.45);
+  background: rgba(10, 7, 22, 0.90);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 999px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07);
   white-space: nowrap;
+  max-width: min(94vw, 860px);
 }
 
 .topbar-spacer { display: none; }
@@ -135,7 +136,7 @@ body {
 .tabs {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
 }
 
 .tab {
@@ -166,7 +167,7 @@ body {
 .tab.active svg { color: #07070f; }
 
 @media (max-width: 760px) {
-  .topbar { padding: 6px 14px; gap: 0; }
+  .topbar { padding: 5px 5px 5px 14px; gap: 0; top: 12px; }
   .tab span { display: none; }
   .tab { padding: 8px 10px; }
   .brand-text { display: none; }
@@ -178,7 +179,7 @@ body {
 main {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 72px 28px 80px;
+  padding: 100px 28px 80px;
 }
 
 .view { display: none; animation: fade .35s ease; }
@@ -190,7 +191,7 @@ main {
 }
 
 @media (max-width: 720px) {
-  main { padding: 66px 16px 80px; }
+  main { padding: 92px 16px 80px; }
 }
 
 /* ============================================================
@@ -198,11 +199,13 @@ main {
    ============================================================ */
 .hero {
   position: relative;
-  padding: 88px 0 64px;
+  padding: 120px 0 100px;
+  min-height: 72vh;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
 }
 
 .hero-eyebrow {
@@ -1277,11 +1280,16 @@ main {
    Hero greeting (animated glowing text)
    ============================================================ */
 .hero-greeting {
-  font-size: clamp(2.6rem, 5vw, 4rem);
+  font-size: clamp(2.8rem, 5.5vw, 4.4rem);
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--accent-1);
-  text-shadow: 0 0 30px var(--accent-glow), 0 0 60px var(--accent-glow), 0 0 100px rgba(34,211,238,0.18);
+  text-shadow:
+    0 0 12px var(--accent-1),
+    0 0 40px var(--accent-1),
+    0 0 80px var(--accent-glow),
+    0 0 140px var(--accent-glow),
+    0 0 220px rgba(34,211,238,0.25);
   animation: greet-float 3.6s ease-in-out infinite;
   margin-top: 24px;
   margin-bottom: 0;
