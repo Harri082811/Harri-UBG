@@ -5,7 +5,7 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { createBareServer } from "@tomphttp/bare-server-node";
 
-const bare = createBareServer("/bare/");
+const bare = createBareServer("/api/bare/");
 
 const app: Express = express();
 
