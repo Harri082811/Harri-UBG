@@ -50430,9 +50430,9 @@ function rebuildStars() {
   stars = new Array(STAR_DENSITY).fill(0).map(() => ({
     x: Math.random() * w,
     y: Math.random() * h,
-    vx: (Math.random() - 0.5) * 0.55,
-    vy: (Math.random() - 0.5) * 0.55,
-    r: Math.random() * 2.2 + 0.9,
+    vx: (Math.random() - 0.5) * 1.1,
+    vy: (Math.random() - 0.5) * 1.1,
+    r: Math.random() * 3.8 + 1.8,
   }));
 }
 
@@ -50449,8 +50449,8 @@ function tick() {
     s.y += s.vy;
     if (s.x < -5) s.x = w + 5;
     if (s.x > w + 5) s.x = -5;
-    if (s.y > h + 5) { s.y = -5; s.x = Math.random() * w; }
-    if (s.y < -5) { s.y = h + 5; s.x = Math.random() * w; }
+    if (s.y > h + 5) s.y = -5;
+    if (s.y < -5) s.y = h + 5;
 
     ctx.beginPath();
     ctx.fillStyle = `rgba(${starColor}, ${0.55 + s.r * 0.25})`;
@@ -52060,28 +52060,7 @@ async function brNavigateTo(rawUrl: string) {
   const frame = document.getElementById("br-frame") as HTMLIFrameElement;
   if (frame) {
     frame.style.display = "block";
-    if ("serviceWorker" in navigator) {
-      try {
-        // Wait for SW to be active AND controlling the page
-        await navigator.serviceWorker.ready;
-        if (!navigator.serviceWorker.controller) {
-          await Promise.race([
-            new Promise<void>((resolve) => {
-              if (navigator.serviceWorker.controller) { resolve(); return; }
-              navigator.serviceWorker.addEventListener(
-                "controllerchange",
-                () => resolve(),
-                { once: true },
-              );
-            }),
-            new Promise<void>((_, rej) =>
-              setTimeout(() => rej(new Error("sw timeout")), 5000),
-            ),
-          ]);
-        }
-      } catch {}
-    }
-    frame.src = `/uv/service/${encodeURIComponent(url)}`;
+    frame.src = `/api/proxy?url=${encodeURIComponent(url)}`;
   }
 }
 
@@ -52115,7 +52094,7 @@ function initBrowser() {
     if (frame) {
       const tab = brTabs.find((t) => t.id === brActiveId);
       if (tab?.url) {
-        frame.src = `/uv/service/${encodeURIComponent(tab.url)}`;
+        frame.src = `/api/proxy?url=${encodeURIComponent(tab.url)}`;
       } else {
         const src = frame.src;
         frame.src = "about:blank";
@@ -52321,9 +52300,15 @@ function showToast(msg: string) {
    ============================================================ */
 
 async function boot() {
-  // Register UV service worker for proxy
+  // Unregister stale SWs then register UV service worker
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/uv.sw.js", { scope: "/" }).catch(() => {});
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      Promise.all(regs.map(r => r.unregister())).then(() => {
+        navigator.serviceWorker.register("/uv.sw.js", { scope: "/" }).catch(() => {});
+      });
+    }).catch(() => {
+      navigator.serviceWorker.register("/uv.sw.js", { scope: "/" }).catch(() => {});
+    });
   }
   applyTheme();
   applyCloak();

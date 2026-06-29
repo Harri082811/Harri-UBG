@@ -1285,10 +1285,10 @@ main {
   letter-spacing: 0.04em;
   color: var(--accent-1);
   text-shadow:
-    0 0 20px var(--accent-1),
-    0 0 60px var(--accent-glow);
-  animation: greet-float 3.6s ease-in-out infinite;
-  margin-top: 24px;
+    0 0 6px rgba(34, 211, 238, 0.35),
+    0 0 18px var(--accent-glow);
+  animation: greet-float 5s ease-in-out infinite;
+  margin-top: 72px;
   margin-bottom: 0;
   min-height: 1.3em;
   user-select: none;
@@ -1492,10 +1492,10 @@ body.br-active #view-browser {
   backdrop-filter: blur(24px);
   border-bottom: 1px solid rgba(255,255,255,0.07);
   box-shadow: 0 4px 24px rgba(0,0,0,0.5);
-  padding: 12px 14px 0;
+  padding: 14px 14px 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .browser-urlrow {
@@ -1687,10 +1687,9 @@ body.br-active #view-browser {
   gap: 2px;
   overflow-x: auto;
   scrollbar-width: none;
-  padding: 2px 6px;
-  border-top: 1px solid rgba(255,255,255,.05);
+  padding: 1px 6px;
   background: rgba(0,0,0,.15);
-  min-height: 28px;
+  min-height: 24px;
 }
 .br-bookmarks:empty { display: none; }
 .br-bookmarks::-webkit-scrollbar { display: none; }
@@ -1953,11 +1952,11 @@ body.br-active #view-browser {
 }
 .sc-modal-cancel:hover { background: rgba(255,255,255,.1); color: var(--text); }
 .sc-modal-save {
-  background: rgba(255,255,255,.08);
-  color: var(--text);
-  border-color: rgba(255,255,255,.12);
+  background: rgba(255,255,255,.05);
+  color: var(--text-dim);
+  border-color: var(--border);
 }
-.sc-modal-save:hover { background: rgba(255,255,255,.14); color: #fff; }
+.sc-modal-save:hover { background: rgba(255,255,255,.1); color: var(--text); }
 
 /* ============================================================
    Welcome screen enhancements

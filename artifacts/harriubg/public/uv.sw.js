@@ -56,7 +56,7 @@ self.addEventListener('fetch', evt => {
   if (ref && url.origin !== self.location.origin) {
     try {
       const refUrl = new URL(ref);
-      if (refUrl.pathname.startsWith(PREFIX)) {
+      if (refUrl.pathname.startsWith(PREFIX) || refUrl.pathname.startsWith('/api/proxy')) {
         evt.respondWith(proxyReq(url.href, evt.request));
         return;
       }
