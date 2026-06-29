@@ -137,12 +137,15 @@ function rewriteCss(css: string, base: string): string {
   });
 }
 
-/** Build the full injection to prepend inside <head> */
+/** Build the interceptor scripts to inject into <head> — NO base tag (it would break root-relative proxy URLs) */
 function buildInjection(baseUrl: string): string {
   const safeBase = baseUrl.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
-  // 1) fetch + XHR + sendBeacon interceptor — runs before any other script
-  const interceptor = `<script>
+  // fetch + XHR + sendBeacon interceptor — must be first script in <head>
+  // _b = original site URL, used to resolve relative URLs in inline JS
+  // Root-relative rewritten paths (/api/proxy?url=...) resolve correctly
+  // against our server origin WITHOUT a <base href> tag.
+  return `<script>
 (function(){
 var _b="${safeBase}";
 var _px="/api/proxy?url=";
@@ -152,72 +155,62 @@ function _p(u){
   try{var a=new URL(u,_b).href;if(a.startsWith("http://")||a.startsWith("https://"))return _px+encodeURIComponent(a);}catch(e){}
   return u;
 }
+// Patch fetch
 var _of=self.fetch;
 self.fetch=function(inp,ini){
   try{if(typeof inp==="string")inp=_p(inp);else if(inp&&typeof inp.url==="string")inp=new Request(_p(inp.url),inp);}catch(e){}
   return _of.call(this,inp,ini);
 };
+// Patch XHR
 var _ox=XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open=function(){
   var a=Array.prototype.slice.call(arguments);
   if(typeof a[1]==="string")a[1]=_p(a[1]);
   _ox.apply(this,a);
 };
+// Patch sendBeacon
 try{if(navigator.sendBeacon){var _ob=navigator.sendBeacon.bind(navigator);navigator.sendBeacon=function(u,d){return _ob(_p(u),d);};}}catch(e){}
-})();
-</script>`;
-
-  // 2) Link/form interceptor — runs after DOM ready
-  const navScript = `<script>
-(function(){
-var PFX="/api/proxy?url=";
-function wrap(u){
-  if(!u||u.startsWith("#")||u.startsWith("javascript:")||u.indexOf("/api/proxy")!==-1)return u;
-  try{var a=new URL(u,document.baseURI).href;if(a.startsWith("http://")||a.startsWith("https://"))return PFX+encodeURIComponent(a);}catch(e){}
-  return u;
-}
+// Link + form click interceptor (uses _b, not document.baseURI, since no <base> tag)
 document.addEventListener("click",function(e){
   var n=e.target;
   for(var i=0;i<6;i++){
     if(!n||n===document)break;
     if(n.tagName==="A"){
       var h=n.getAttribute("href");
-      if(h&&!h.startsWith("#")&&!h.startsWith("javascript:")){var w=wrap(h);if(w!==h){e.preventDefault();e.stopPropagation();location.href=w;}}
+      if(h&&!h.startsWith("#")&&!h.startsWith("javascript:")&&h.indexOf("/api/proxy")===-1){
+        var w=_p(h);if(w!==h){e.preventDefault();e.stopPropagation();location.href=w;}
+      }
       break;
     }
     n=n.parentElement;
   }
 },true);
 document.addEventListener("submit",function(e){
-  var f=e.target;
-  if(!f||!f.action)return;
-  if((f.method||"get").toLowerCase()==="get"){var w=wrap(f.action);if(w!==f.action){e.preventDefault();location.href=w+"?"+new URLSearchParams(new FormData(f));}}
+  var f=e.target;if(!f||!f.action)return;
+  if((f.method||"get").toLowerCase()==="get"){var w=_p(f.action);if(w!==f.action){e.preventDefault();location.href=w+"?"+new URLSearchParams(new FormData(f));}}
 },true);
-// Notify parent frame about current URL
-function ping(){try{parent.postMessage({type:"proxy-url",url:location.href},"*");}catch(e){}}
-window.addEventListener("load",ping);
 })();
 </script>`;
-
-  const baseTag = `<base href="${baseUrl.replace(/"/g, "&quot;")}">`;
-  return baseTag + interceptor + navScript;
 }
 
-/** Inject interceptors + base href into HTML */
+/** Inject interceptors into HTML, stripping any existing <base> tags so they don't override our proxy URLs */
 function transformHtml(html: string, baseUrl: string): string {
-  // Rewrite static attributes first
-  const rewritten = rewriteHtml(html, baseUrl);
+  // Remove any existing <base> tags — they would redirect root-relative
+  // /api/proxy?url=... paths to the target domain instead of our server
+  let rewritten = html.replace(/<base\b[^>]*>/gi, "");
+
+  // Rewrite static src/href/action/srcset attributes
+  rewritten = rewriteHtml(rewritten, baseUrl);
+
   const injection = buildInjection(baseUrl);
 
-  // Replace existing <base> tag or insert after <head>
-  if (/<base\s[^>]*href/i.test(rewritten)) {
-    return rewritten.replace(/<base\s[^>]*>/i, injection);
-  }
+  // Insert as first thing inside <head>
   const headMatch = rewritten.match(/<head[^>]*>/i);
   if (headMatch && headMatch.index !== undefined) {
     const at = headMatch.index + headMatch[0].length;
     return rewritten.slice(0, at) + injection + rewritten.slice(at);
   }
+  // No <head> tag — prepend
   return injection + rewritten;
 }
 
