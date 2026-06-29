@@ -52060,26 +52060,7 @@ async function brNavigateTo(rawUrl: string) {
   const frame = document.getElementById("br-frame") as HTMLIFrameElement;
   if (frame) {
     frame.style.display = "block";
-    // Ensure UV SW is controlling before using /uv/service/ prefix
-    // (boot unregisters stale SWs so controller will be null until UV SW claims)
-    if ("serviceWorker" in navigator) {
-      try {
-        await navigator.serviceWorker.ready;
-        if (!navigator.serviceWorker.controller) {
-          await Promise.race([
-            new Promise<void>((r) => {
-              navigator.serviceWorker.addEventListener(
-                "controllerchange",
-                () => r(),
-                { once: true },
-              );
-            }),
-            new Promise<void>((r) => setTimeout(r, 4000)),
-          ]);
-        }
-      } catch {}
-    }
-    frame.src = `/uv/service/${encodeURIComponent(url)}`;
+    frame.src = `/api/proxy?url=${encodeURIComponent(url)}`;
   }
 }
 
@@ -52113,7 +52094,7 @@ function initBrowser() {
     if (frame) {
       const tab = brTabs.find((t) => t.id === brActiveId);
       if (tab?.url) {
-        frame.src = `/uv/service/${encodeURIComponent(tab.url)}`;
+        frame.src = `/api/proxy?url=${encodeURIComponent(tab.url)}`;
       } else {
         const src = frame.src;
         frame.src = "about:blank";

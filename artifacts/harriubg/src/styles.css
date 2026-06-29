@@ -161,17 +161,6 @@ body {
 .tab[data-tab="settings"] { padding-left: 20px; padding-right: 20px; }
 .tab:hover { color: var(--text); background: rgba(255,255,255,.06); transform: translateY(-1px); }
 .tab:active { transform: scale(.95) translateY(0); transition-duration: .12s; }
-.tab::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at center, rgba(255,255,255,.18) 0%, transparent 70%);
-  opacity: 0;
-  transition: opacity .5s ease;
-  pointer-events: none;
-  border-radius: inherit;
-}
-.tab:active::after { opacity: 1; transition-duration: 0s; }
 .tab.active {
   color: #07070f;
   background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
@@ -286,18 +275,6 @@ main {
 .btn:hover:not(:disabled) { transform: translateY(-2px); }
 .btn:active { transform: scale(.96); transition-duration: .12s; }
 
-/* Ripple on click */
-.btn::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at center, rgba(255,255,255,.22) 0%, transparent 65%);
-  opacity: 0;
-  transition: opacity .5s ease;
-  pointer-events: none;
-  border-radius: inherit;
-}
-.btn:active::after { opacity: 1; transition-duration: 0s; }
 
 .btn-primary {
   background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
@@ -1551,16 +1528,7 @@ body.br-active #view-browser {
 }
 .br-nav-btn:hover:not(:disabled) { color: var(--text); background: rgba(255,255,255,.09); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
 .br-nav-btn:active:not(:disabled) { transform: scale(.9) translateY(0); transition-duration: .12s; }
-.br-nav-btn::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at center, rgba(255,255,255,.25) 0%, transparent 70%);
-  opacity: 0;
-  transition: opacity .5s ease;
-  pointer-events: none;
-}
-.br-nav-btn:active:not(:disabled)::after { opacity: 1; transition-duration: 0s; }
+
 .br-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .br-url-bar {
