@@ -2320,9 +2320,10 @@ body.br-active #view-browser {
 }
 
 @keyframes notice-btn-pulse {
-  0%, 100% { box-shadow: 0 4px 16px -4px var(--accent-glow); transform: scale(1); }
-  50% { box-shadow: 0 4px 28px 0 var(--accent-glow), 0 0 0 4px rgba(34,211,238,0.12); transform: scale(1.02); }
+  0%, 100% { box-shadow: 0 4px 16px -4px var(--accent-glow); }
+  50% { box-shadow: 0 4px 28px 0 var(--accent-glow), 0 0 0 4px rgba(34,211,238,0.12); }
 }
 #games-notice-ok {
   animation: notice-btn-pulse 2.2s ease-in-out infinite;
+  will-change: transform;
 }

@@ -58,7 +58,7 @@ const DEFAULT_SETTINGS: Settings = {
   cloakIcon: "",
   aboutBlank: false,
   autoplay: true,
-  server: "vidsrc.cc",
+  server: "multiembed",
   showStars: true,
   showBlobs: true,
   showShootingStars: true,
@@ -50381,7 +50381,8 @@ async function cloakGameHtml(g: Game): Promise<string> {
   }
 
   try {
-    const res = await fetch(g.url, { cache: "force-cache" });
+    // Fetch through our proxy so CORS is not an issue
+    const res = await fetch(`/api/proxy?url=${encodeURIComponent(g.url)}`, { cache: "force-cache" });
     if (!res.ok) throw new Error(`fetch ${g.url} -> ${res.status}`);
     let html = await res.text();
     html = html.replace(
@@ -51297,11 +51298,11 @@ const CLOAK_ICON_OPTIONS = [
 ];
 
 const SERVER_OPTIONS = [
-  { value: "vidsrc.cc", label: "Server 1" },
-  { value: "vidsrc.xyz", label: "Server 2" },
-  { value: "embed.su", label: "Server 3" },
-  { value: "vidlink.pro", label: "Server 4 (recommended)" },
-  { value: "2embed.cc", label: "Server 5" },
+  { value: "multiembed", label: "Server 1 (multiembed)" },
+  { value: "videasy", label: "Server 2 (videasy)" },
+  { value: "autoembed", label: "Server 3 (autoembed)" },
+  { value: "vidlink.pro", label: "Server 4 (vidlink)" },
+  { value: "2embed.cc", label: "Server 5 (2embed)" },
 ];
 
 function bindSettings() {
