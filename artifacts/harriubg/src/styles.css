@@ -152,13 +152,26 @@ body {
   font-size: 13.5px;
   border-radius: 10px;
   cursor: pointer;
-  transition: color .22s, background .22s, transform .18s;
+  transition: color .35s cubic-bezier(.2,.8,.2,1), background .35s cubic-bezier(.2,.8,.2,1), transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease;
   line-height: 1;
+  position: relative;
+  overflow: hidden;
 }
 .tab svg { flex-shrink: 0; width: 14px; height: 14px; }
 .tab[data-tab="settings"] { padding-left: 20px; padding-right: 20px; }
-.tab:hover { color: var(--text); background: rgba(255,255,255,.06); }
-.tab:active { transform: scale(.97); }
+.tab:hover { color: var(--text); background: rgba(255,255,255,.06); transform: translateY(-1px); }
+.tab:active { transform: scale(.95) translateY(0); transition-duration: .12s; }
+.tab::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,.18) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity .5s ease;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.tab:active::after { opacity: 1; transition-duration: 0s; }
 .tab.active {
   color: #07070f;
   background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
@@ -264,11 +277,27 @@ main {
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  transition: transform .15s, background .2s, border-color .2s, box-shadow .2s;
+  transition: transform .35s cubic-bezier(.2,.8,.2,1), background .35s ease, border-color .35s ease, box-shadow .35s ease;
   background: transparent;
   color: var(--text);
+  position: relative;
+  overflow: hidden;
 }
-.btn:active { transform: scale(.98); }
+.btn:hover:not(:disabled) { transform: translateY(-2px); }
+.btn:active { transform: scale(.96); transition-duration: .12s; }
+
+/* Ripple on click */
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,.22) 0%, transparent 65%);
+  opacity: 0;
+  transition: opacity .5s ease;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.btn:active::after { opacity: 1; transition-duration: 0s; }
 
 .btn-primary {
   background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
@@ -276,7 +305,7 @@ main {
   border-color: transparent;
   box-shadow: var(--shadow-glow);
 }
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 40px -8px var(--accent-glow); }
+.btn-primary:hover { box-shadow: 0 14px 44px -8px var(--accent-glow); }
 
 .btn-ghost { background: rgba(255,255,255,.04); }
 .btn-ghost:hover { background: rgba(255,255,255,.08); border-color: var(--border-strong); }
@@ -1514,11 +1543,24 @@ body.br-active #view-browser {
   cursor: pointer;
   display: grid;
   place-items: center;
-  transition: color .15s, background .15s;
+  transition: color .35s cubic-bezier(.2,.8,.2,1), background .35s ease, transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease;
   flex-shrink: 0;
   font-family: inherit;
+  position: relative;
+  overflow: hidden;
 }
-.br-nav-btn:hover { color: var(--text); background: rgba(255,255,255,.09); }
+.br-nav-btn:hover:not(:disabled) { color: var(--text); background: rgba(255,255,255,.09); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.br-nav-btn:active:not(:disabled) { transform: scale(.9) translateY(0); transition-duration: .12s; }
+.br-nav-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,.25) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity .5s ease;
+  pointer-events: none;
+}
+.br-nav-btn:active:not(:disabled)::after { opacity: 1; transition-duration: 0s; }
 .br-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .br-url-bar {
@@ -1631,12 +1673,14 @@ body.br-active #view-browser {
   font-family: var(--font-sans);
   max-width: 180px;
   min-width: 0;
-  transition: background .15s, color .15s;
+  transition: background .35s cubic-bezier(.2,.8,.2,1), color .35s ease, transform .35s cubic-bezier(.2,.8,.2,1), border-color .35s ease;
   flex-shrink: 0;
   white-space: nowrap;
   overflow: hidden;
+  position: relative;
 }
-.br-tab:hover { background: rgba(255,255,255,.08); color: var(--text); }
+.br-tab:hover { background: rgba(255,255,255,.08); color: var(--text); transform: translateY(-1px); }
+.br-tab:active { transform: scale(.95); transition-duration: .1s; }
 .br-tab.active { background: rgba(255,255,255,.11); color: var(--text); border-color: var(--accent-1); }
 
 .br-tab-fav { border-radius: 3px; flex-shrink: 0; }

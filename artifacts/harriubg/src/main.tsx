@@ -50302,18 +50302,18 @@ async function fetchShowDetails(showId: number): Promise<ShowDetails | null> {
 
 function buildEmbedUrl(movieId: number, server: string): string {
   switch (server) {
-    case "vidsrc.cc":
-      return `https://vidsrc.cc/v2/embed/movie/${movieId}`;
-    case "vidsrc.xyz":
-      return `https://vidsrc.xyz/embed/movie?tmdb=${movieId}`;
-    case "embed.su":
-      return `https://embed.su/embed/movie/${movieId}`;
+    case "multiembed":
+      return `https://multiembed.mov/?video_id=${movieId}&tmdb=1`;
+    case "videasy":
+      return `https://player.videasy.net/movie/${movieId}`;
+    case "autoembed":
+      return `https://autoembed.cc/movie/tmdb/${movieId}`;
     case "vidlink.pro":
       return `https://vidlink.pro/movie/${movieId}?primaryColor=22d3ee&secondaryColor=a78bfa&iconColor=ffffff&autoplay=false`;
     case "2embed.cc":
       return `https://www.2embed.cc/embed/${movieId}`;
     default:
-      return `https://vidsrc.cc/v2/embed/movie/${movieId}`;
+      return `https://multiembed.mov/?video_id=${movieId}&tmdb=1`;
   }
 }
 
@@ -50324,18 +50324,18 @@ function buildShowEmbedUrl(
   server: string,
 ): string {
   switch (server) {
-    case "vidsrc.cc":
-      return `https://vidsrc.cc/v2/embed/tv/${showId}/${season}/${episode}`;
-    case "vidsrc.xyz":
-      return `https://vidsrc.xyz/embed/tv?tmdb=${showId}&season=${season}&episode=${episode}`;
-    case "embed.su":
-      return `https://embed.su/embed/tv/${showId}/${season}/${episode}`;
+    case "multiembed":
+      return `https://multiembed.mov/?video_id=${showId}&tmdb=1&s=${season}&e=${episode}`;
+    case "videasy":
+      return `https://player.videasy.net/tv/${showId}/${season}/${episode}`;
+    case "autoembed":
+      return `https://autoembed.cc/tv/tmdb/${showId}-${season}-${episode}`;
     case "vidlink.pro":
       return `https://vidlink.pro/tv/${showId}/${season}/${episode}?primaryColor=22d3ee&secondaryColor=a78bfa&iconColor=ffffff&autoplay=false`;
     case "2embed.cc":
       return `https://www.2embed.cc/embedtv/${showId}&s=${season}&e=${episode}`;
     default:
-      return `https://vidsrc.cc/v2/embed/tv/${showId}/${season}/${episode}`;
+      return `https://multiembed.mov/?video_id=${showId}&tmdb=1&s=${season}&e=${episode}`;
   }
 }
 
@@ -50396,9 +50396,9 @@ async function cloakGameHtml(g: Game): Promise<string> {
 }
 
 const SERVERS: Array<{ id: string; label: string }> = [
-  { id: "vidsrc.cc", label: "Server 1" },
-  { id: "vidsrc.xyz", label: "Server 2" },
-  { id: "embed.su", label: "Server 3" },
+  { id: "multiembed", label: "Server 1" },
+  { id: "videasy", label: "Server 2" },
+  { id: "autoembed", label: "Server 3" },
   { id: "vidlink.pro", label: "Server 4" },
   { id: "2embed.cc", label: "Server 5" },
 ];
@@ -52060,7 +52060,26 @@ async function brNavigateTo(rawUrl: string) {
   const frame = document.getElementById("br-frame") as HTMLIFrameElement;
   if (frame) {
     frame.style.display = "block";
-    frame.src = `/api/proxy?url=${encodeURIComponent(url)}`;
+    // Ensure UV SW is controlling before using /uv/service/ prefix
+    // (boot unregisters stale SWs so controller will be null until UV SW claims)
+    if ("serviceWorker" in navigator) {
+      try {
+        await navigator.serviceWorker.ready;
+        if (!navigator.serviceWorker.controller) {
+          await Promise.race([
+            new Promise<void>((r) => {
+              navigator.serviceWorker.addEventListener(
+                "controllerchange",
+                () => r(),
+                { once: true },
+              );
+            }),
+            new Promise<void>((r) => setTimeout(r, 4000)),
+          ]);
+        }
+      } catch {}
+    }
+    frame.src = `/uv/service/${encodeURIComponent(url)}`;
   }
 }
 
@@ -52094,7 +52113,7 @@ function initBrowser() {
     if (frame) {
       const tab = brTabs.find((t) => t.id === brActiveId);
       if (tab?.url) {
-        frame.src = `/api/proxy?url=${encodeURIComponent(tab.url)}`;
+        frame.src = `/uv/service/${encodeURIComponent(tab.url)}`;
       } else {
         const src = frame.src;
         frame.src = "about:blank";
