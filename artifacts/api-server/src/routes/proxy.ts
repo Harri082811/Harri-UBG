@@ -1,10 +1,10 @@
 import { Router } from "express";
 import type { Request, Response as ExpressResponse } from "express";
-import { lookup } from "dns/promises";
 
 const router = Router();
 
-const STRIP_HEADERS = new Set([
+// Headers to strip from upstream responses (security/framing headers that block proxy use)
+const STRIP_RES_HEADERS = new Set([
   "x-frame-options",
   "content-security-policy",
   "content-security-policy-report-only",
@@ -12,73 +12,113 @@ const STRIP_HEADERS = new Set([
   "cross-origin-opener-policy",
   "cross-origin-resource-policy",
   "permissions-policy",
+  "strict-transport-security",
+  "expect-ct",
+  "nel",
+  "report-to",
+  "transfer-encoding",
+  "content-encoding",
+  "content-length",
+  "set-cookie", // cookies belong to target domain, not ours
 ]);
 
-const MAX_RESPONSE_BYTES = 15 * 1024 * 1024; // 15 MB
-const MAX_REDIRECTS = 8;
+const MAX_RESPONSE_BYTES = 25 * 1024 * 1024; // 25 MB
+const MAX_REDIRECTS = 10;
 
-function isPrivateIp(ip: string): boolean {
-  const addr = ip.replace(/^::ffff:/i, "");
-  if (addr === "::1" || addr === "127.0.0.1" || addr.startsWith("127.")) return true;
-  if (addr === "0.0.0.0" || addr === "::") return true;
-  if (addr.startsWith("169.254.")) return true;
-  if (addr.startsWith("10.")) return true;
-  if (addr.startsWith("192.168.")) return true;
-  const parts = addr.split(".").map(Number);
-  if (parts.length === 4 && parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-  if (/^fe80:/i.test(addr)) return true;
-  if (/^f[cd]/i.test(addr)) return true;
-  return false;
-}
-
-const BLOCKED_HOSTS = new Set(["localhost", "metadata.google.internal", "metadata.internal"]);
-
-async function isSafeHost(host: string): Promise<boolean> {
-  const h = host.toLowerCase();
-  if (BLOCKED_HOSTS.has(h)) return false;
+/** Static-only safety check — no DNS lookup (DNS blocks CDN/API hosts in sandbox) */
+function isSafeHost(host: string): boolean {
+  const h = host.toLowerCase().trim();
+  if (!h || h === "localhost") return false;
   if (h.endsWith(".internal") || h.endsWith(".local") || h.endsWith(".localhost")) return false;
-  try {
-    const results = await lookup(h, { all: true });
-    for (const r of results) {
-      if (isPrivateIp(r.address)) return false;
-    }
-  } catch {
-    // DNS lookup failed in sandbox environment — allow if host passes static checks
-    return true;
+  if (h === "metadata.google.internal" || h === "metadata.internal") return false;
+  // Block numeric IPs that are private ranges
+  const ipv4 = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(h);
+  if (ipv4) {
+    const [, a, b] = ipv4.map(Number);
+    if (a === 10) return false;
+    if (a === 127) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 0) return false;
   }
   return true;
 }
 
-async function isSafeUrl(url: URL): Promise<boolean> {
-  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
-  return isSafeHost(url.hostname);
+/** Read raw request body — handles already-parsed bodies (json/urlencoded) and raw streams */
+async function readRequestBody(req: Request): Promise<Buffer | undefined> {
+  const method = req.method.toUpperCase();
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(method)) return undefined;
+
+  // express.json() / express.urlencoded() may have already parsed it
+  if (req.body !== undefined && req.body !== null) {
+    const ct = (req.headers["content-type"] ?? "").toLowerCase();
+    if (ct.includes("application/json")) return Buffer.from(JSON.stringify(req.body));
+    if (ct.includes("application/x-www-form-urlencoded")) {
+      return Buffer.from(
+        Object.entries(req.body as Record<string, string>)
+          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+          .join("&")
+      );
+    }
+    if (typeof req.body === "string") return Buffer.from(req.body);
+    if (Buffer.isBuffer(req.body)) return req.body;
+  }
+
+  // Fall through: read raw stream (for content-types not parsed by express)
+  return new Promise<Buffer>((resolve, reject) => {
+    if ((req as any).readableEnded) { resolve(Buffer.alloc(0)); return; }
+    const chunks: Buffer[] = [];
+    req.on("data", (c: Buffer) => chunks.push(c));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
 }
 
+/** Follow redirects manually so we can check each hop, supports any HTTP method */
 async function safeFetch(
   startUrl: string,
-  reqHeaders: Record<string, string>,
+  method: string,
+  headers: Record<string, string>,
+  body: Buffer | undefined,
   timeoutMs: number,
 ): Promise<{ response: globalThis.Response; finalUrl: string }> {
   let currentUrl = startUrl;
+  let currentMethod = method;
+  let currentBody = body;
   let hops = 0;
+
   while (hops <= MAX_REDIRECTS) {
     let parsed: URL;
-    try { parsed = new URL(currentUrl); } catch { throw new Error("Invalid redirect URL"); }
-    if (!(await isSafeUrl(parsed))) throw new Error("Redirect target is not allowed");
-    const response = await fetch(currentUrl, {
-      method: "GET",
-      headers: reqHeaders,
+    try { parsed = new URL(currentUrl); } catch { throw new Error("Invalid URL: " + currentUrl); }
+    if (!isSafeHost(parsed.hostname)) throw new Error("Host not allowed: " + parsed.hostname);
+
+    const fetchOpts: RequestInit = {
+      method: currentMethod,
+      headers,
       redirect: "manual",
       signal: AbortSignal.timeout(timeoutMs),
-    });
+    };
+    if (currentBody && ["POST", "PUT", "PATCH"].includes(currentMethod)) {
+      fetchOpts.body = currentBody;
+    }
+
+    const response = await fetch(currentUrl, fetchOpts);
     const { status } = response;
+
     if (status >= 300 && status < 400) {
       const location = response.headers.get("location");
       if (!location) throw new Error("Redirect with no Location header");
       currentUrl = new URL(location, currentUrl).toString();
+      // 301/302 redirect POST → GET (browser standard behavior)
+      if ([301, 302, 303].includes(status) && currentMethod === "POST") {
+        currentMethod = "GET";
+        currentBody = undefined;
+      }
       hops++;
       continue;
     }
+
     return { response, finalUrl: currentUrl };
   }
   throw new Error("Too many redirects");
@@ -108,20 +148,14 @@ function proxyUrl(url: string, base: string): string {
 
 /** Rewrite HTML: src, href, action, srcset, poster, data, style url() */
 function rewriteHtml(html: string, base: string): string {
-  // src, href, action, poster
-  html = html.replace(/\b(src|href|action|poster)=(["'])([^"'<>\s]*)\2/gi, (m, attr, q, url) => {
+  html = html.replace(/\b(src|href|action|poster|data)=(["'])([^"'<>\s]*)\2/gi, (m, attr, q, url) => {
     const p = proxyUrl(url, base);
     return p !== url ? `${attr}=${q}${p}${q}` : m;
   });
-  // srcset
   html = html.replace(/\bsrcset=(["'])([^"'<>]*)\1/gi, (m, q, srcset) => {
-    const rw = srcset.replace(/(https?:\/\/[^\s,]+)/gi, (u: string) => {
-      const p = proxyUrl(u, base);
-      return p !== u ? p : u;
-    });
+    const rw = srcset.replace(/(https?:\/\/[^\s,]+)/gi, (u: string) => proxyUrl(u, base));
     return rw !== srcset ? `srcset=${q}${rw}${q}` : m;
   });
-  // inline style url()
   html = html.replace(/\burl\((['"]?)(https?:\/\/[^)'"\s]+)\1\)/gi, (m, q, url) => {
     const p = proxyUrl(url, base);
     return p !== url ? `url(${q}${p}${q})` : m;
@@ -129,12 +163,37 @@ function rewriteHtml(html: string, base: string): string {
   return html;
 }
 
-/** Rewrite CSS url() references */
+/** Rewrite CSS url() and @import */
 function rewriteCss(css: string, base: string): string {
-  return css.replace(/\burl\((['"]?)(https?:\/\/[^)'"\s]+)\1\)/gi, (m, q, url) => {
+  css = css.replace(/\burl\((['"]?)(https?:\/\/[^)'"\s]+)\1\)/gi, (m, q, url) => {
     const p = proxyUrl(url, base);
     return p !== url ? `url(${q}${p}${q})` : m;
   });
+  css = css.replace(/@import\s+(["'])(https?:\/\/[^"']+)\1/gi, (m, q, url) => {
+    const p = proxyUrl(url, base);
+    return p !== url ? `@import ${q}${p}${q}` : m;
+  });
+  return css;
+}
+
+/** Rewrite JS: dynamic import() and import-from with absolute URLs */
+function rewriteJs(js: string, base: string): string {
+  // dynamic: import("https://...")
+  js = js.replace(/\bimport\s*\(\s*(["'])(https?:\/\/[^"'\s]+)\1\s*\)/g, (m, q, url) => {
+    const p = proxyUrl(url, base);
+    return p !== url ? `import(${q}${p}${q})` : m;
+  });
+  // static: import/export ... from "https://..."
+  js = js.replace(/((?:import|export)[^"'\n]*from\s+)(["'])(https?:\/\/[^"'\s]+)\2/g, (m, prefix, q, url) => {
+    const p = proxyUrl(url, base);
+    return p !== url ? `${prefix}${q}${p}${q}` : m;
+  });
+  // importScripts("https://...") in service workers
+  js = js.replace(/\bimportScripts\s*\((["'])(https?:\/\/[^"']+)\1\)/g, (m, q, url) => {
+    const p = proxyUrl(url, base);
+    return p !== url ? `importScripts(${q}${p}${q})` : m;
+  });
+  return js;
 }
 
 /** Build the interceptor scripts to inject into <head> — comprehensive navigation interception */
@@ -153,14 +212,13 @@ function _p(u){
 }
 
 /* === Network interception === */
-function _log(method,url){try{parent.postMessage({type:"proxy-request",method:method,url:url},"*");}catch(e){}}
+function _log(m,u){try{parent.postMessage({type:"proxy-request",method:m,url:u},"*");}catch(e){}}
 var _of=self.fetch;
 self.fetch=function(inp,ini){
   var u=typeof inp==="string"?inp:(inp&&inp.url)||"";
   try{if(typeof inp==="string")inp=_p(inp);else if(inp&&typeof inp.url==="string")inp=new Request(_p(inp.url),inp);}catch(e){}
-  var res=_of.call(this,inp,ini);
   _log((ini&&ini.method)||"GET",u);
-  return res;
+  return _of.call(this,inp,ini);
 };
 var _ox=XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open=function(){
@@ -172,7 +230,7 @@ XMLHttpRequest.prototype.open=function(){
 };
 try{if(navigator.sendBeacon){var _ob=navigator.sendBeacon.bind(navigator);navigator.sendBeacon=function(u,d){_log("BEACON",u);return _ob(_p(u),d);};}}catch(e){}
 
-/* === Location navigation interception — stops iframe from navigating to our own app === */
+/* === Location navigation interception === */
 try{
   var _ld=Object.getOwnPropertyDescriptor(Location.prototype,"href");
   if(_ld&&_ld.set){
@@ -183,20 +241,11 @@ try{
     });
   }
 }catch(e){}
-try{
-  var _la=Location.prototype.assign;
-  Location.prototype.assign=function(u){return _la.call(this,_p(String(u)));};
-}catch(e){}
-try{
-  var _lr=Location.prototype.replace;
-  Location.prototype.replace=function(u){return _lr.call(this,_p(String(u)));};
-}catch(e){}
-try{
-  var _wo=window.open;
-  window.open=function(u,n,f){if(u&&typeof u==="string")u=_p(u);return _wo.call(window,u,n,f);};
-}catch(e){}
+try{var _la=Location.prototype.assign;Location.prototype.assign=function(u){return _la.call(this,_p(String(u)));};}catch(e){}
+try{var _lr=Location.prototype.replace;Location.prototype.replace=function(u){return _lr.call(this,_p(String(u)));};}catch(e){}
+try{var _wo=window.open;window.open=function(u,n,f){if(u&&typeof u==="string")u=_p(u);return _wo.call(window,u,n,f);};}catch(e){}
 
-/* === Frame-busting neutralization: make top/parent/frameElement appear to be self === */
+/* === Frame-busting neutralization === */
 try{Object.defineProperty(window,"top",{get:function(){return window;},configurable:true});}catch(e){}
 try{Object.defineProperty(window,"parent",{get:function(){return window;},configurable:true});}catch(e){}
 try{Object.defineProperty(window,"frameElement",{get:function(){return null;},configurable:true});}catch(e){}
@@ -226,28 +275,40 @@ document.addEventListener("submit",function(e){
 </script>`;
 }
 
-/** Inject interceptors into HTML, stripping any existing <base> tags so they don't override our proxy URLs */
+/** Inject interceptors, stripping any existing <base> tags */
 function transformHtml(html: string, baseUrl: string): string {
-  // Remove any existing <base> tags — they would redirect root-relative
-  // /api/proxy?url=... paths to the target domain instead of our server
   let rewritten = html.replace(/<base\b[^>]*>/gi, "");
-
-  // Rewrite static src/href/action/srcset attributes
   rewritten = rewriteHtml(rewritten, baseUrl);
-
   const injection = buildInjection(baseUrl);
-
-  // Insert as first thing inside <head>
   const headMatch = rewritten.match(/<head[^>]*>/i);
   if (headMatch && headMatch.index !== undefined) {
     const at = headMatch.index + headMatch[0].length;
     return rewritten.slice(0, at) + injection + rewritten.slice(at);
   }
-  // No <head> tag — prepend
   return injection + rewritten;
 }
 
-router.get("/proxy", async (req: Request, res: ExpressResponse) => {
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS",
+  "Access-Control-Allow-Headers": "*",
+  "Access-Control-Expose-Headers": "*",
+};
+
+// Handle OPTIONS preflight
+router.options("/proxy", (_req, res) => {
+  Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
+  res.sendStatus(204);
+});
+
+// Handle HEAD
+router.head("/proxy", async (req, res) => {
+  Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
+  res.sendStatus(204);
+});
+
+// Handle ALL methods
+router.all("/proxy", async (req: Request, res: ExpressResponse) => {
   const targetUrl = req.query["url"] as string;
   if (!targetUrl) { res.status(400).json({ error: "url parameter required" }); return; }
 
@@ -259,36 +320,64 @@ router.get("/proxy", async (req: Request, res: ExpressResponse) => {
     }
   } catch { res.status(400).json({ error: "Invalid URL" }); return; }
 
-  if (!(await isSafeUrl(parsed))) { res.status(403).json({ error: "Target URL is not allowed" }); return; }
+  if (!isSafeHost(parsed.hostname)) {
+    res.status(403).json({ error: "Host not allowed" }); return;
+  }
 
+  const method = req.method.toUpperCase() === "HEAD" ? "GET" : req.method.toUpperCase();
+
+  // Build upstream request headers
   const upstream: Record<string, string> = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    Accept: (req.headers["accept"] as string) || "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "Accept": (req.headers["accept"] as string) || "*/*",
     "Accept-Language": (req.headers["accept-language"] as string) || "en-US,en;q=0.9",
     "Accept-Encoding": "gzip, deflate, br",
   };
 
+  // Forward content-type for POST/PUT/PATCH
+  const ct = req.headers["content-type"];
+  if (ct) upstream["Content-Type"] = ct as string;
+
+  // Forward origin/referer so sites don't reject the request
   try {
-    const { response, finalUrl } = await safeFetch(targetUrl, upstream, 20_000);
+    const origin = new URL(targetUrl).origin;
+    upstream["Origin"] = origin;
+    upstream["Referer"] = origin + "/";
+  } catch {}
+
+  try {
+    const body = await readRequestBody(req);
+    const { response, finalUrl } = await safeFetch(targetUrl, method, upstream, body, 25_000);
 
     const contentType = response.headers.get("content-type") ?? "";
     const isHtml = contentType.includes("text/html");
     const isCss = contentType.includes("text/css");
+    const isJs = contentType.includes("javascript") || contentType.includes("ecmascript");
 
     res.status(response.status);
 
     // Forward safe headers
     for (const [key, value] of response.headers.entries()) {
       const k = key.toLowerCase();
-      if (!STRIP_HEADERS.has(k) && k !== "transfer-encoding" && k !== "content-encoding" && k !== "content-length") {
+      if (!STRIP_RES_HEADERS.has(k)) {
         try { res.setHeader(key, value); } catch {}
       }
     }
 
-    // Always set permissive CORS so the browser and SW can read responses
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "*");
+    // Set permissive CORS
+    Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
+
+    // For redirects with no body
+    if (response.status >= 300 && response.status < 400) {
+      const loc = response.headers.get("location");
+      if (loc) {
+        try {
+          const abs = new URL(loc, finalUrl).href;
+          res.setHeader("Location", `/api/proxy?url=${encodeURIComponent(abs)}`);
+        } catch {}
+      }
+      res.end(); return;
+    }
 
     const buffer = await response.arrayBuffer();
     if (buffer.byteLength > MAX_RESPONSE_BYTES) {
@@ -305,21 +394,17 @@ router.get("/proxy", async (req: Request, res: ExpressResponse) => {
       const out = rewriteCss(text, finalUrl);
       res.setHeader("Content-Type", "text/css; charset=utf-8");
       res.end(Buffer.from(out));
+    } else if (isJs) {
+      const text = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
+      const out = rewriteJs(text, finalUrl);
+      res.end(Buffer.from(out));
     } else {
       res.end(Buffer.from(buffer));
     }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    res.status(502).send("Proxy error: " + msg);
+    if (!res.headersSent) res.status(502).json({ error: "Proxy error: " + msg });
   }
-});
-
-// Handle OPTIONS preflight
-router.options("/proxy", (_req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "*");
-  res.sendStatus(204);
 });
 
 export default router;
