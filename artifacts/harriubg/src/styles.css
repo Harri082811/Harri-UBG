@@ -2262,6 +2262,67 @@ body.br-active #view-browser {
 }
 #br-devtools-btn.active { color: var(--accent-1); }
 
+/* Elements tab */
+.br-dt-elements { font-family: var(--font-mono, monospace); font-size: 11px; }
+.br-dt-el {
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 3px;
+  line-height: 1.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.br-dt-el:hover { background: rgba(255,255,255,.06); }
+.br-dt-el.br-dt-selected { background: rgba(0,180,255,.15); outline: 1px solid rgba(0,180,255,.35); }
+.br-dt-tag { color: #569cd6; }
+.br-dt-attr-name { color: #9cdcfe; }
+.br-dt-attr-val { color: #ce9178; }
+.br-dt-text { color: rgba(220,240,255,.55); margin: 0 4px; }
+.br-dt-styles {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+}
+.br-dt-styles-title { color: var(--accent-1); margin-bottom: 6px; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.br-dt-style-row { display: flex; gap: 6px; padding: 1px 0; }
+.br-dt-style-prop { color: #9cdcfe; min-width: 130px; }
+.br-dt-style-val { color: #ce9178; }
+
+/* Console input bar */
+.br-dt-console-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.25);
+  flex-shrink: 0;
+}
+.br-dt-prompt { color: var(--accent-1); font-family: var(--font-mono, monospace); font-size: 13px; }
+.br-dt-console-input input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+}
+.br-dt-console-input button {
+  background: rgba(0,180,255,.15);
+  border: 1px solid rgba(0,180,255,.3);
+  color: var(--accent-1);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.br-dt-console-input button:hover { background: rgba(0,180,255,.25); }
+
 /* ============================================================
    Games notice modal
    ============================================================ */

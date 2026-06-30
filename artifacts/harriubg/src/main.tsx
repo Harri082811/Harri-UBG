@@ -51803,37 +51803,93 @@ function devtoolsLog(type: "console" | "network", msg: string) {
   if (devtoolsOpen) renderDevtoolsTab();
 }
 
+function buildDomTree(node: Element, depth = 0): string {
+  if (depth > 4) return "";
+  const tag = node.tagName.toLowerCase();
+  const attrs = Array.from(node.attributes)
+    .map((a) => ` <span class="br-dt-attr-name">${escapeHtml(a.name)}</span>="<span class="br-dt-attr-val">${escapeHtml(a.value)}</span>"`)
+    .join("");
+  const children = Array.from(node.children);
+  const indent = "  ".repeat(depth);
+  if (children.length === 0) {
+    const text = node.textContent?.trim().slice(0, 80) ?? "";
+    return `<div class="br-dt-el" style="padding-left:${depth * 14}px"><span class="br-dt-tag">&lt;${escapeHtml(tag)}${attrs}&gt;</span>${text ? `<span class="br-dt-text">${escapeHtml(text)}</span>` : ""}<span class="br-dt-tag">&lt;/${escapeHtml(tag)}&gt;</span></div>`;
+  }
+  return `<div class="br-dt-el" style="padding-left:${depth * 14}px"><span class="br-dt-tag">&lt;${escapeHtml(tag)}${attrs}&gt;</span></div>${children.map((c) => buildDomTree(c, depth + 1)).join("")}<div class="br-dt-el" style="padding-left:${depth * 14}px"><span class="br-dt-tag">&lt;/${escapeHtml(tag)}&gt;</span></div>`;
+}
+
 function renderDevtoolsTab() {
   const active = document.querySelector<HTMLButtonElement>(".br-dt-tab.active");
   const pane = document.getElementById("br-dt-pane");
+  const consoleInput = document.getElementById("br-dt-console-input");
   if (!pane || !active) return;
   const which = active.dataset.dtTab;
-  if (which === "network") {
+
+  if (consoleInput) consoleInput.style.display = which === "console" ? "flex" : "none";
+
+  if (which === "elements") {
+    const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+    try {
+      const doc = frame?.contentDocument;
+      if (!doc || !doc.documentElement) {
+        pane.innerHTML = '<div class="br-dt-empty">No page loaded yet.</div>';
+        return;
+      }
+      const html = buildDomTree(doc.documentElement);
+      pane.innerHTML = `<div class="br-dt-elements">${html}</div>`;
+      // Click to select and show styles
+      pane.querySelectorAll<HTMLElement>(".br-dt-el").forEach((el, idx) => {
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          pane.querySelectorAll(".br-dt-el").forEach((x) => x.classList.remove("br-dt-selected"));
+          el.classList.add("br-dt-selected");
+          // Try to get computed styles of corresponding element
+          try {
+            const elems = doc.querySelectorAll("*");
+            const target = elems[idx];
+            if (target) {
+              const computed = frame.contentWindow!.getComputedStyle(target);
+              const props = ["color","background-color","font-size","font-family","margin","padding","display","width","height","border"];
+              const styleHtml = props.map((p) => `<div class="br-dt-style-row"><span class="br-dt-style-prop">${p}</span>: <span class="br-dt-style-val">${escapeHtml(computed.getPropertyValue(p)||"-")}</span></div>`).join("");
+              let stylePanel = document.getElementById("br-dt-styles");
+              if (!stylePanel) {
+                stylePanel = document.createElement("div");
+                stylePanel.id = "br-dt-styles";
+                stylePanel.className = "br-dt-styles";
+                pane.appendChild(stylePanel);
+              }
+              stylePanel.innerHTML = `<div class="br-dt-styles-title">Computed Styles — &lt;${target.tagName.toLowerCase()}&gt;</div>${styleHtml}`;
+            }
+          } catch {}
+        });
+      });
+    } catch {
+      pane.innerHTML = '<div class="br-dt-empty">Cannot inspect cross-origin content.</div>';
+    }
+  } else if (which === "network") {
     pane.innerHTML = devtoolsNetworkLog.length
       ? devtoolsNetworkLog
-          .map(
-            (l) => `<div class="br-dt-line br-dt-net">${escapeHtml(l)}</div>`,
-          )
+          .slice().reverse()
+          .map((l) => `<div class="br-dt-line br-dt-net">${escapeHtml(l)}</div>`)
           .join("")
-      : '<div class="br-dt-empty">No network requests yet.</div>';
+      : '<div class="br-dt-empty">No network requests captured yet.</div>';
   } else if (which === "console") {
     pane.innerHTML = devtoolsConsoleLog.length
       ? devtoolsConsoleLog
+          .slice().reverse()
           .map((l) => `<div class="br-dt-line">${escapeHtml(l)}</div>`)
           .join("")
-      : '<div class="br-dt-empty">No console messages.</div>';
+      : '<div class="br-dt-empty">No console output yet. Use the input below to run JS.</div>';
   } else {
-    const frame = document.getElementById("br-frame") as HTMLIFrameElement;
     const tab = brTabs.find((t) => t.id === brActiveId);
     pane.innerHTML = `
       <div class="br-dt-info-row"><span class="br-dt-key">URL</span><span class="br-dt-val">${escapeHtml(tab?.url || "(none)")}</span></div>
       <div class="br-dt-info-row"><span class="br-dt-key">Title</span><span class="br-dt-val">${escapeHtml(tab?.title || "(none)")}</span></div>
       <div class="br-dt-info-row"><span class="br-dt-key">Protocol</span><span class="br-dt-val">${tab?.url?.startsWith("https") ? "HTTPS ✓" : tab?.url?.startsWith("http") ? "HTTP (not secure)" : "-"}</span></div>
-      <div class="br-dt-info-row"><span class="br-dt-key">Proxy route</span><span class="br-dt-val">/api/proxy via SW</span></div>
-      <div class="br-dt-info-row"><span class="br-dt-key">Sandbox</span><span class="br-dt-val">allow-scripts allow-same-origin allow-forms allow-popups</span></div>
+      <div class="br-dt-info-row"><span class="br-dt-key">Proxy</span><span class="br-dt-val">/api/proxy (fetch+XHR+location interceptors active)</span></div>
     `;
   }
-  pane.scrollTop = pane.scrollHeight;
+  pane.scrollTop = 0;
 }
 
 function initDevtools() {
@@ -51853,10 +51909,38 @@ function initDevtools() {
       renderDevtoolsTab();
     });
   });
-  // Intercept SW messages for network tab
-  navigator.serviceWorker?.addEventListener("message", (evt) => {
+
+  // Console: execute JS inside the proxy iframe
+  const runConsole = () => {
+    const input = document.getElementById("br-dt-console-cmd") as HTMLInputElement;
+    const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+    const cmd = input?.value?.trim();
+    if (!cmd) return;
+    devtoolsLog("console", `> ${cmd}`);
+    input.value = "";
+    try {
+      const win = frame?.contentWindow as any;
+      if (!win) { devtoolsLog("console", "✗ No page loaded"); return; }
+      const result = win.eval(cmd);
+      const str = result === undefined ? "undefined" : JSON.stringify(result, null, 2) ?? String(result);
+      devtoolsLog("console", `← ${str.slice(0, 500)}`);
+    } catch (err: any) {
+      devtoolsLog("console", `✗ ${err?.message ?? String(err)}`);
+    }
+    renderDevtoolsTab();
+  };
+  document.getElementById("br-dt-console-run")?.addEventListener("click", runConsole);
+  document.getElementById("br-dt-console-cmd")?.addEventListener("keydown", (e) => {
+    if ((e as KeyboardEvent).key === "Enter") runConsole();
+  });
+
+  // Intercept messages from proxy iframe for network/console logging
+  window.addEventListener("message", (evt) => {
     if (evt.data?.type === "proxy-request") {
-      devtoolsLog("network", `→ ${evt.data.method || "GET"} ${evt.data.url}`);
+      devtoolsLog("network", `${evt.data.method || "GET"} ${evt.data.url} ${evt.data.status ?? ""}`);
+    }
+    if (evt.data?.type === "proxy-console") {
+      devtoolsLog("console", `[page] ${evt.data.msg}`);
     }
   });
 }
@@ -52206,6 +52290,24 @@ function initBrowser() {
     }
     blocked?.classList.remove("visible");
     brSetLoading(false);
+
+    // Guard: if the iframe navigated to our own app (not a proxy URL), redirect back
+    try {
+      const href = frame.contentWindow?.location?.href ?? "";
+      const isOurDomain = href.includes(location.hostname);
+      const isProxied = href.includes("/api/proxy");
+      const isBlank = !href || href === "about:blank";
+      if (isOurDomain && !isProxied && !isBlank) {
+        const tab = brTabs.find((t) => t.id === brActiveId);
+        if (tab?.url) {
+          setTimeout(() => {
+            frame.src = `/api/proxy?url=${encodeURIComponent(tab.url)}`;
+          }, 80);
+          return;
+        }
+      }
+    } catch {}
+
     try {
       const tabEntry = brTabs.find((t) => t.id === brActiveId);
       if (tabEntry && frame.contentDocument) {

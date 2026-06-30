@@ -137,14 +137,10 @@ function rewriteCss(css: string, base: string): string {
   });
 }
 
-/** Build the interceptor scripts to inject into <head> — NO base tag (it would break root-relative proxy URLs) */
+/** Build the interceptor scripts to inject into <head> — comprehensive navigation interception */
 function buildInjection(baseUrl: string): string {
   const safeBase = baseUrl.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
-  // fetch + XHR + sendBeacon interceptor — must be first script in <head>
-  // _b = original site URL, used to resolve relative URLs in inline JS
-  // Root-relative rewritten paths (/api/proxy?url=...) resolve correctly
-  // against our server origin WITHOUT a <base href> tag.
   return `<script>
 (function(){
 var _b="${safeBase}";
@@ -155,22 +151,57 @@ function _p(u){
   try{var a=new URL(u,_b).href;if(a.startsWith("http://")||a.startsWith("https://"))return _px+encodeURIComponent(a);}catch(e){}
   return u;
 }
-// Patch fetch
+
+/* === Network interception === */
+function _log(method,url){try{parent.postMessage({type:"proxy-request",method:method,url:url},"*");}catch(e){}}
 var _of=self.fetch;
 self.fetch=function(inp,ini){
+  var u=typeof inp==="string"?inp:(inp&&inp.url)||"";
   try{if(typeof inp==="string")inp=_p(inp);else if(inp&&typeof inp.url==="string")inp=new Request(_p(inp.url),inp);}catch(e){}
-  return _of.call(this,inp,ini);
+  var res=_of.call(this,inp,ini);
+  _log((ini&&ini.method)||"GET",u);
+  return res;
 };
-// Patch XHR
 var _ox=XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open=function(){
   var a=Array.prototype.slice.call(arguments);
+  var u=a[1]||"";
   if(typeof a[1]==="string")a[1]=_p(a[1]);
-  _ox.apply(this,a);
+  _log(a[0]||"GET",u);
+  return _ox.apply(this,a);
 };
-// Patch sendBeacon
-try{if(navigator.sendBeacon){var _ob=navigator.sendBeacon.bind(navigator);navigator.sendBeacon=function(u,d){return _ob(_p(u),d);};}}catch(e){}
-// Link + form click interceptor (uses _b, not document.baseURI, since no <base> tag)
+try{if(navigator.sendBeacon){var _ob=navigator.sendBeacon.bind(navigator);navigator.sendBeacon=function(u,d){_log("BEACON",u);return _ob(_p(u),d);};}}catch(e){}
+
+/* === Location navigation interception — stops iframe from navigating to our own app === */
+try{
+  var _ld=Object.getOwnPropertyDescriptor(Location.prototype,"href");
+  if(_ld&&_ld.set){
+    Object.defineProperty(Location.prototype,"href",{
+      get:_ld.get,
+      set:function(u){_ld.set.call(this,_p(String(u)));},
+      configurable:true
+    });
+  }
+}catch(e){}
+try{
+  var _la=Location.prototype.assign;
+  Location.prototype.assign=function(u){return _la.call(this,_p(String(u)));};
+}catch(e){}
+try{
+  var _lr=Location.prototype.replace;
+  Location.prototype.replace=function(u){return _lr.call(this,_p(String(u)));};
+}catch(e){}
+try{
+  var _wo=window.open;
+  window.open=function(u,n,f){if(u&&typeof u==="string")u=_p(u);return _wo.call(window,u,n,f);};
+}catch(e){}
+
+/* === Frame-busting neutralization: make top/parent/frameElement appear to be self === */
+try{Object.defineProperty(window,"top",{get:function(){return window;},configurable:true});}catch(e){}
+try{Object.defineProperty(window,"parent",{get:function(){return window;},configurable:true});}catch(e){}
+try{Object.defineProperty(window,"frameElement",{get:function(){return null;},configurable:true});}catch(e){}
+
+/* === Link and form interceptors === */
 document.addEventListener("click",function(e){
   var n=e.target;
   for(var i=0;i<6;i++){
@@ -187,7 +218,9 @@ document.addEventListener("click",function(e){
 },true);
 document.addEventListener("submit",function(e){
   var f=e.target;if(!f||!f.action)return;
-  if((f.method||"get").toLowerCase()==="get"){var w=_p(f.action);if(w!==f.action){e.preventDefault();location.href=w+"?"+new URLSearchParams(new FormData(f));}}
+  if((f.method||"get").toLowerCase()==="get"){
+    var w=_p(f.action);if(w!==f.action){e.preventDefault();location.href=w+"?"+new URLSearchParams(new FormData(f));}
+  }
 },true);
 })();
 </script>`;

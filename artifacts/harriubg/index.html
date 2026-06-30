@@ -525,14 +525,21 @@
             <div class="br-devtools-panel" id="br-devtools-panel">
               <div class="br-dt-header">
                 <div class="br-dt-tabs">
-                  <button class="br-dt-tab active" data-dt-tab="info">Info</button>
+                  <button class="br-dt-tab active" data-dt-tab="elements">Elements</button>
                   <button class="br-dt-tab" data-dt-tab="console">Console</button>
                   <button class="br-dt-tab" data-dt-tab="network">Network</button>
+                  <button class="br-dt-tab" data-dt-tab="info">Info</button>
                 </div>
                 <button class="br-dt-close" id="br-dt-close" title="Close DevTools">✕</button>
               </div>
               <div class="br-dt-pane" id="br-dt-pane">
                 <div class="br-dt-empty">Open a page to inspect it.</div>
+              </div>
+              <!-- Console input bar -->
+              <div class="br-dt-console-input" id="br-dt-console-input" style="display:none">
+                <span class="br-dt-prompt">&gt;</span>
+                <input type="text" id="br-dt-console-cmd" placeholder="Run JavaScript in the page…" autocomplete="off" spellcheck="false" />
+                <button id="br-dt-console-run">Run</button>
               </div>
             </div>
 
