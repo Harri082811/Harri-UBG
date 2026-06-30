@@ -50382,7 +50382,9 @@ async function cloakGameHtml(g: Game): Promise<string> {
 
   try {
     // Fetch through our proxy so CORS is not an issue
-    const res = await fetch(`/api/proxy?url=${encodeURIComponent(g.url)}`, { cache: "force-cache" });
+    const res = await fetch(`/api/proxy?url=${encodeURIComponent(g.url)}`, {
+      cache: "force-cache",
+    });
     if (!res.ok) throw new Error(`fetch ${g.url} -> ${res.status}`);
     let html = await res.text();
     html = html.replace(
@@ -50660,12 +50662,24 @@ function showGamesNotice() {
   if (!overlay) return;
   overlay.hidden = false;
   overlay.style.animation = "none";
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    overlay.style.animation = "";
-  }));
-  const close = () => { overlay.hidden = true; };
-  document.getElementById("games-notice-ok")?.addEventListener("click", close, { once: true });
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); }, { once: true });
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      overlay.style.animation = "";
+    }),
+  );
+  const close = () => {
+    overlay.hidden = true;
+  };
+  document
+    .getElementById("games-notice-ok")
+    ?.addEventListener("click", close, { once: true });
+  overlay.addEventListener(
+    "click",
+    (e) => {
+      if (e.target === overlay) close();
+    },
+    { once: true },
+  );
 }
 
 function initTabs() {
@@ -51298,11 +51312,11 @@ const CLOAK_ICON_OPTIONS = [
 ];
 
 const SERVER_OPTIONS = [
-  { value: "multiembed", label: "Server 1 (multiembed)" },
-  { value: "videasy", label: "Server 2 (videasy)" },
-  { value: "autoembed", label: "Server 3 (autoembed)" },
-  { value: "vidlink.pro", label: "Server 4 (vidlink)" },
-  { value: "2embed.cc", label: "Server 5 (2embed)" },
+  { value: "multiembed", label: "Server 1" },
+  { value: "videasy", label: "Server 2 " },
+  { value: "autoembed", label: "Server 3" },
+  { value: "vidlink.pro", label: "Server 4 (recommended)" },
+  { value: "2embed.cc", label: "Server 5" },
 ];
 
 function bindSettings() {
@@ -51762,7 +51776,6 @@ function openShortcutModal(onSave?: (url: string, title: string) => void) {
   document.addEventListener("keydown", onKey, { once: true });
 }
 
-
 /* ============================================================
    Browser DevTools panel
    ============================================================ */
@@ -51797,15 +51810,21 @@ function renderDevtoolsTab() {
   const which = active.dataset.dtTab;
   if (which === "network") {
     pane.innerHTML = devtoolsNetworkLog.length
-      ? devtoolsNetworkLog.map(l => `<div class="br-dt-line br-dt-net">${escapeHtml(l)}</div>`).join("")
+      ? devtoolsNetworkLog
+          .map(
+            (l) => `<div class="br-dt-line br-dt-net">${escapeHtml(l)}</div>`,
+          )
+          .join("")
       : '<div class="br-dt-empty">No network requests yet.</div>';
   } else if (which === "console") {
     pane.innerHTML = devtoolsConsoleLog.length
-      ? devtoolsConsoleLog.map(l => `<div class="br-dt-line">${escapeHtml(l)}</div>`).join("")
+      ? devtoolsConsoleLog
+          .map((l) => `<div class="br-dt-line">${escapeHtml(l)}</div>`)
+          .join("")
       : '<div class="br-dt-empty">No console messages.</div>';
   } else {
     const frame = document.getElementById("br-frame") as HTMLIFrameElement;
-    const tab = brTabs.find(t => t.id === brActiveId);
+    const tab = brTabs.find((t) => t.id === brActiveId);
     pane.innerHTML = `
       <div class="br-dt-info-row"><span class="br-dt-key">URL</span><span class="br-dt-val">${escapeHtml(tab?.url || "(none)")}</span></div>
       <div class="br-dt-info-row"><span class="br-dt-key">Title</span><span class="br-dt-val">${escapeHtml(tab?.title || "(none)")}</span></div>
@@ -51818,14 +51837,18 @@ function renderDevtoolsTab() {
 }
 
 function initDevtools() {
-  document.getElementById("br-devtools-btn")?.addEventListener("click", toggleDevtools);
+  document
+    .getElementById("br-devtools-btn")
+    ?.addEventListener("click", toggleDevtools);
   document.getElementById("br-dt-close")?.addEventListener("click", () => {
     devtoolsOpen = false;
     document.getElementById("br-devtools-panel")?.classList.remove("open");
   });
-  document.querySelectorAll<HTMLButtonElement>(".br-dt-tab").forEach(btn => {
+  document.querySelectorAll<HTMLButtonElement>(".br-dt-tab").forEach((btn) => {
     btn.addEventListener("click", () => {
-      document.querySelectorAll(".br-dt-tab").forEach(b => b.classList.remove("active"));
+      document
+        .querySelectorAll(".br-dt-tab")
+        .forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       renderDevtoolsTab();
     });
@@ -51939,7 +51962,10 @@ function brShowWelcome() {
   const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
   if (urlInput) urlInput.value = "";
   const favicon = document.getElementById("br-favicon") as HTMLImageElement;
-  if (favicon) { favicon.src = ""; favicon.style.display = "none"; }
+  if (favicon) {
+    favicon.src = "";
+    favicon.style.display = "none";
+  }
   const lock = document.getElementById("br-lock");
   if (lock) lock.style.color = "rgba(255,255,255,0.25)";
   if (frame) {
@@ -52303,13 +52329,20 @@ function showToast(msg: string) {
 async function boot() {
   // Unregister stale SWs then register UV service worker
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      Promise.all(regs.map(r => r.unregister())).then(() => {
-        navigator.serviceWorker.register("/uv.sw.js", { scope: "/" }).catch(() => {});
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((regs) => {
+        Promise.all(regs.map((r) => r.unregister())).then(() => {
+          navigator.serviceWorker
+            .register("/uv.sw.js", { scope: "/" })
+            .catch(() => {});
+        });
+      })
+      .catch(() => {
+        navigator.serviceWorker
+          .register("/uv.sw.js", { scope: "/" })
+          .catch(() => {});
       });
-    }).catch(() => {
-      navigator.serviceWorker.register("/uv.sw.js", { scope: "/" }).catch(() => {});
-    });
   }
   applyTheme();
   applyCloak();
