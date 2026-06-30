@@ -1293,7 +1293,7 @@ main {
   text-shadow:
     0 0 6px rgba(34, 211, 238, 0.35),
     0 0 18px var(--accent-glow);
-  animation: greet-float 5s ease-in-out infinite;
+  animation: greet-float 2.5s ease-in-out infinite;
   margin-top: 72px;
   margin-bottom: 0;
   min-height: 1.3em;
