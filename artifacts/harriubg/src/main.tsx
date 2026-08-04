@@ -50370,32 +50370,14 @@ function cloakUrl(url: string, title: string): string {
   return makeBlobUrl(html);
 }
 
-/** Fetch a single-file game's HTML and serve via blob URL. */
-async function cloakGameHtml(g: Game): Promise<string> {
-  // Multi-file games (Unity/WebGL) must load from their own origin so that
-  // relative asset paths (loader.js, .wasm, .data) resolve correctly.
-  // Wrapping via cloakUrl keeps source-URL cloaking while letting the game
-  // run from gn-math.github.io without any fetch/rewrite interference.
-  if (g.multiFile) {
-    return cloakUrl(g.url, g.name);
-  }
-
-  try {
-    // Fetch through our proxy so CORS is not an issue
-    const res = await fetch(`/api/proxy?url=${encodeURIComponent(g.url)}`, {
-      cache: "force-cache",
-    });
-    if (!res.ok) throw new Error(`fetch ${g.url} -> ${res.status}`);
-    let html = await res.text();
-    html = html.replace(
-      /<title>[\s\S]*?<\/title>/i,
-      `<title>${escapeHtml(g.name)}</title>`,
-    );
-    return makeBlobUrl(html);
-  } catch (err) {
-    console.error(err);
-    return cloakUrl(g.url, g.name);
-  }
+/** Load a game in a cloaked blob iframe — direct from CDN, no proxy injection.
+ *  Games are self-contained HTML5 apps that don't need navigation rewriting.
+ *  Injecting proxy interceptors into game HTML breaks game JS and adds latency.
+ */
+function cloakGameHtml(g: Game): string {
+  // Both single-file and multi-file games: load directly from CDN via blob wrapper.
+  // The inner iframe loads from gn-math.github.io, keeping relative asset paths intact.
+  return cloakUrl(g.url, g.name);
 }
 
 const SERVERS: Array<{ id: string; label: string }> = [
@@ -50980,7 +50962,7 @@ function closeModal() {
   setTimeout(revokeBlobs, 500);
 }
 
-async function openGame(g: Game) {
+function openGame(g: Game) {
   document.getElementById("modal-kind")!.textContent = "Game";
   document.getElementById("modal-title")!.textContent = g.name;
   (document.getElementById("server-row") as HTMLElement).hidden = true;
@@ -50995,7 +50977,7 @@ async function openGame(g: Game) {
 
   const f = document.getElementById("modal-frame") as HTMLIFrameElement;
   f.src = "about:blank";
-  const blobUrl = await cloakGameHtml(g);
+  const blobUrl = cloakGameHtml(g);
 
   if (settings.aboutBlank) {
     openInAboutBlank(blobUrl, g.name);

@@ -163,13 +163,15 @@ function rewriteHtml(html: string, base: string): string {
   return html;
 }
 
-/** Rewrite CSS url() and @import */
+/** Rewrite CSS url() and @import — handles both absolute and relative paths */
 function rewriteCss(css: string, base: string): string {
-  css = css.replace(/\burl\((['"]?)(https?:\/\/[^)'"\s]+)\1\)/gi, (m, q, url) => {
+  // url("...") — all paths (absolute and relative)
+  css = css.replace(/\burl\(\s*(["']?)([^)"'\s]+)\1\s*\)/gi, (m, q, url) => {
     const p = proxyUrl(url, base);
     return p !== url ? `url(${q}${p}${q})` : m;
   });
-  css = css.replace(/@import\s+(["'])(https?:\/\/[^"']+)\1/gi, (m, q, url) => {
+  // @import "..." or @import url(...)
+  css = css.replace(/@import\s+(["'])([^"']+)\1/gi, (m, q, url) => {
     const p = proxyUrl(url, base);
     return p !== url ? `@import ${q}${p}${q}` : m;
   });
@@ -275,9 +277,22 @@ document.addEventListener("submit",function(e){
 </script>`;
 }
 
-/** Inject interceptors, stripping any existing <base> tags */
+/** Inject interceptors, stripping any existing <base> tags and meta CSP */
 function transformHtml(html: string, baseUrl: string): string {
+  // Strip <base> tags (they break root-relative proxy URLs)
   let rewritten = html.replace(/<base\b[^>]*>/gi, "");
+  // Strip meta CSP tags (they block sub-resources even after we strip the header)
+  rewritten = rewritten.replace(/<meta[^>]+http-equiv\s*=\s*["']?content-security-policy["']?[^>]*\/?>/gi, "");
+  rewritten = rewritten.replace(/<meta[^>]+content-security-policy[^>]*\/?>/gi, "");
+  // Rewrite inline <style> blocks
+  rewritten = rewritten.replace(/(<style[^>]*>)([\s\S]*?)(<\/style>)/gi, (m, open, css, close) => {
+    return open + rewriteCss(css, baseUrl) + close;
+  });
+  // Rewrite style="" attributes
+  rewritten = rewritten.replace(/\bstyle=(["'])([^"']*url\([^)]+\)[^"']*)\1/gi, (m, q, styleVal) => {
+    const rw = rewriteCss(styleVal, baseUrl);
+    return rw !== styleVal ? `style=${q}${rw}${q}` : m;
+  });
   rewritten = rewriteHtml(rewritten, baseUrl);
   const injection = buildInjection(baseUrl);
   const headMatch = rewritten.match(/<head[^>]*>/i);
