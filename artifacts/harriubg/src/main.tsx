@@ -37,7 +37,7 @@ type ShowSeason = {
   episode_count: number;
   name: string;
 };
-type ShowDetails = { id: number; seasons: ShowSeason[] };
+type ShowDetails = { id: number; seasons: ShowSeason[]; flat?: boolean };
 
 type Settings = {
   theme: "cosmic" | "aurora" | "sunset" | "midnight";
@@ -50259,14 +50259,32 @@ async function loadPosters(): Promise<void> {
 const SHOW_DETAILS_CACHE_KEY = "harriubg.shows.v2";
 
 /** Manual season overrides for shows TMDB gets wrong (merges seasons, etc.) */
-const SHOW_SEASONS_OVERRIDE: Record<number, ShowSeason[]> = {
-  // Jujutsu Kaisen — TMDB incorrectly merges all eps into S1 (59 eps)
-  95479: [
-    { season_number: 1, episode_count: 24, name: "Season 1" },
-    { season_number: 2, episode_count: 23, name: "Season 2" },
-    { season_number: 3, episode_count: 21, name: "Season 3 (Hidden Inventory / Shibuya)" },
-  ],
+const SHOW_SEASONS_OVERRIDE: Record<number, { seasons: ShowSeason[]; flat?: boolean }> = {
+  // Jujutsu Kaisen — TMDB merges all eps into S1; real breakdown with continuous numbering
+  // S1: E1–E24 | S2: E25–E47 | S3: E48–E59 → 59 total
+  95479: {
+    flat: true,
+    seasons: [
+      { season_number: 1, episode_count: 24, name: "Season 1" },
+      { season_number: 2, episode_count: 23, name: "Season 2" },
+      { season_number: 3, episode_count: 12, name: "Season 3" },
+    ],
+  },
 };
+
+/** Given cumulative episode N across flat seasons, return the actual {season, episode} */
+function resolveFlatEpisode(
+  seasons: ShowSeason[],
+  cumEp: number,
+): { season: number; episode: number } {
+  let remaining = cumEp;
+  for (const s of seasons) {
+    if (remaining <= s.episode_count) return { season: s.season_number, episode: remaining };
+    remaining -= s.episode_count;
+  }
+  const last = seasons[seasons.length - 1];
+  return { season: last.season_number, episode: last.episode_count };
+}
 function loadShowDetailsCache(): Record<string, ShowDetails> {
   try {
     return JSON.parse(localStorage.getItem(SHOW_DETAILS_CACHE_KEY) || "{}");
@@ -50282,7 +50300,8 @@ function saveShowDetailsCache(c: Record<string, ShowDetails>) {
 async function fetchShowDetails(showId: number): Promise<ShowDetails | null> {
   // Manual override takes priority — TMDB sometimes merges seasons incorrectly
   if (SHOW_SEASONS_OVERRIDE[showId]) {
-    return { id: showId, seasons: SHOW_SEASONS_OVERRIDE[showId] };
+    const ov = SHOW_SEASONS_OVERRIDE[showId];
+    return { id: showId, seasons: ov.seasons, flat: ov.flat };
   }
   const cache = loadShowDetailsCache();
   const k = String(showId);
@@ -51138,6 +51157,36 @@ async function openShow(sh: Show) {
     return;
   }
 
+  // ── Flat / continuous episode numbering (e.g. JJK: E1–E59 across all seasons) ──
+  if (details.flat) {
+    const totalEps = details.seasons.reduce((sum, s) => sum + s.episode_count, 0);
+    const flatOptions = Array.from({ length: totalEps }, (_, i) => ({
+      value: String(i + 1),
+      label: `Episode ${i + 1}`,
+    }));
+    activeShowEpisode = 1;
+    activeShowSeason = details.seasons[0].season_number;
+
+    ep.appendChild(
+      createCustomSelect(
+        flatOptions,
+        "1",
+        (val) => {
+          const cumEp = parseInt(val) || 1;
+          const resolved = resolveFlatEpisode(details.seasons, cumEp);
+          activeShowSeason = resolved.season;
+          activeShowEpisode = resolved.episode;
+          setLoading(true);
+          f.src = playUrl(settings.server);
+        },
+        true,
+      ),
+    );
+    ep.hidden = false;
+    return;
+  }
+
+  // ── Standard season + episode selectors ──
   const seasonOptions = details.seasons.map((s) => ({
     value: String(s.season_number),
     label: s.name || `Season ${s.season_number}`,
