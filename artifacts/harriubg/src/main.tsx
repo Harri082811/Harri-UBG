@@ -50256,7 +50256,17 @@ async function loadPosters(): Promise<void> {
 }
 
 /* ----- TV show details: fetched on demand to populate the season picker ----- */
-const SHOW_DETAILS_CACHE_KEY = "harriubg.shows.v1";
+const SHOW_DETAILS_CACHE_KEY = "harriubg.shows.v2";
+
+/** Manual season overrides for shows TMDB gets wrong (merges seasons, etc.) */
+const SHOW_SEASONS_OVERRIDE: Record<number, ShowSeason[]> = {
+  // Jujutsu Kaisen — TMDB incorrectly merges all eps into S1 (59 eps)
+  95479: [
+    { season_number: 1, episode_count: 24, name: "Season 1" },
+    { season_number: 2, episode_count: 23, name: "Season 2" },
+    { season_number: 3, episode_count: 21, name: "Season 3 (Hidden Inventory / Shibuya)" },
+  ],
+};
 function loadShowDetailsCache(): Record<string, ShowDetails> {
   try {
     return JSON.parse(localStorage.getItem(SHOW_DETAILS_CACHE_KEY) || "{}");
@@ -50270,6 +50280,10 @@ function saveShowDetailsCache(c: Record<string, ShowDetails>) {
   } catch {}
 }
 async function fetchShowDetails(showId: number): Promise<ShowDetails | null> {
+  // Manual override takes priority — TMDB sometimes merges seasons incorrectly
+  if (SHOW_SEASONS_OVERRIDE[showId]) {
+    return { id: showId, seasons: SHOW_SEASONS_OVERRIDE[showId] };
+  }
   const cache = loadShowDetailsCache();
   const k = String(showId);
   if (cache[k]) return cache[k];
@@ -52272,34 +52286,32 @@ function initBrowser() {
     }
     blocked?.classList.remove("visible");
     brSetLoading(false);
+    // Note: contentWindow.location / contentDocument are not accessible without
+    // allow-same-origin in the sandbox — URL bar is updated via proxy-navigate messages instead.
+  });
 
-    // Guard: if the iframe navigated to our own app (not a proxy URL), redirect back
-    try {
-      const href = frame.contentWindow?.location?.href ?? "";
-      const isOurDomain = href.includes(location.hostname);
-      const isProxied = href.includes("/api/proxy");
-      const isBlank = !href || href === "about:blank";
-      if (isOurDomain && !isProxied && !isBlank) {
-        const tab = brTabs.find((t) => t.id === brActiveId);
-        if (tab?.url) {
-          setTimeout(() => {
-            frame.src = `/api/proxy?url=${encodeURIComponent(tab.url)}`;
-          }, 80);
-          return;
-        }
+  // Listen for navigation/title/request messages from the injected proxy script
+  window.addEventListener("message", (ev) => {
+    if (!ev.data || typeof ev.data !== "object") return;
+    const { type, url } = ev.data as { type: string; url?: string };
+    if (type === "proxy-navigate" && url) {
+      // Decode the real URL from the proxy URL for display in the address bar
+      let display = url;
+      try {
+        const m = url.match(/\/api\/proxy\?url=(.+)/);
+        if (m) display = decodeURIComponent(m[1]);
+      } catch {}
+      const tab = brTabs.find((t) => t.id === brActiveId);
+      if (tab) {
+        tab.url = display;
+        try { tab.title = new URL(display).hostname; } catch {}
+        renderBrTabs();
       }
-    } catch {}
-
-    try {
-      const tabEntry = brTabs.find((t) => t.id === brActiveId);
-      if (tabEntry && frame.contentDocument) {
-        const t = frame.contentDocument.title;
-        if (t) {
-          tabEntry.title = t;
-          renderBrTabs();
-        }
-      }
-    } catch {}
+      if (urlInput) urlInput.value = display;
+      updateBmToggle(display);
+      updateSecureIcon(display);
+      updateBrFavicon(display);
+    }
   });
 
   document.getElementById("br-open-newtab")?.addEventListener("click", () => {

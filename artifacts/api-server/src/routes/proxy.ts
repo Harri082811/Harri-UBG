@@ -23,7 +23,7 @@ const STRIP_RES_HEADERS = new Set([
 ]);
 
 const MAX_RESPONSE_BYTES = 25 * 1024 * 1024; // 25 MB
-const MAX_REDIRECTS = 10;
+const MAX_REDIRECTS = 20;
 
 /** Static-only safety check — no DNS lookup (DNS blocks CDN/API hosts in sandbox) */
 function isSafeHost(host: string): boolean {
@@ -87,11 +87,16 @@ async function safeFetch(
   let currentMethod = method;
   let currentBody = body;
   let hops = 0;
+  const visited = new Set<string>(); // detect circular redirects
 
   while (hops <= MAX_REDIRECTS) {
     let parsed: URL;
     try { parsed = new URL(currentUrl); } catch { throw new Error("Invalid URL: " + currentUrl); }
     if (!isSafeHost(parsed.hostname)) throw new Error("Host not allowed: " + parsed.hostname);
+
+    // Circular redirect detection
+    if (visited.has(currentUrl)) throw new Error("Redirect loop detected");
+    visited.add(currentUrl);
 
     const fetchOpts: RequestInit = {
       method: currentMethod,
@@ -108,9 +113,12 @@ async function safeFetch(
 
     if (status >= 300 && status < 400) {
       const location = response.headers.get("location");
-      if (!location) throw new Error("Redirect with no Location header");
-      currentUrl = new URL(location, currentUrl).toString();
-      // 301/302 redirect POST → GET (browser standard behavior)
+      if (!location) return { response, finalUrl: currentUrl }; // no Location → return as-is
+      const nextUrl = new URL(location, currentUrl).toString();
+      // If we'd loop, just return the current response
+      if (visited.has(nextUrl)) return { response, finalUrl: currentUrl };
+      currentUrl = nextUrl;
+      // 301/302/303 redirect POST → GET (browser standard behavior)
       if ([301, 302, 303].includes(status) && currentMethod === "POST") {
         currentMethod = "GET";
         currentBody = undefined;
@@ -160,6 +168,8 @@ function rewriteHtml(html: string, base: string): string {
     const p = proxyUrl(url, base);
     return p !== url ? `url(${q}${p}${q})` : m;
   });
+  // Neutralize frame-busting: rewrite target="_top" / target="_parent" → target="_self"
+  html = html.replace(/\btarget=(["'])(_top|_parent)\1/gi, `target=$1_self$1`);
   return html;
 }
 
@@ -232,20 +242,25 @@ XMLHttpRequest.prototype.open=function(){
 };
 try{if(navigator.sendBeacon){var _ob=navigator.sendBeacon.bind(navigator);navigator.sendBeacon=function(u,d){_log("BEACON",u);return _ob(_p(u),d);};}}catch(e){}
 
+/* === Navigation notify — lets parent update URL bar === */
+function _nav(u){try{parent.postMessage({type:"proxy-navigate",url:u},"*");}catch(e){}}
+
 /* === Location navigation interception === */
 try{
   var _ld=Object.getOwnPropertyDescriptor(Location.prototype,"href");
   if(_ld&&_ld.set){
     Object.defineProperty(Location.prototype,"href",{
       get:_ld.get,
-      set:function(u){_ld.set.call(this,_p(String(u)));},
+      set:function(u){var w=_p(String(u));_nav(w);_ld.set.call(this,w);},
       configurable:true
     });
   }
 }catch(e){}
-try{var _la=Location.prototype.assign;Location.prototype.assign=function(u){return _la.call(this,_p(String(u)));};}catch(e){}
-try{var _lr=Location.prototype.replace;Location.prototype.replace=function(u){return _lr.call(this,_p(String(u)));};}catch(e){}
+try{var _la=Location.prototype.assign;Location.prototype.assign=function(u){var w=_p(String(u));_nav(w);return _la.call(this,w);};}catch(e){}
+try{var _lr=Location.prototype.replace;Location.prototype.replace=function(u){var w=_p(String(u));_nav(w);return _lr.call(this,w);};}catch(e){}
 try{var _wo=window.open;window.open=function(u,n,f){if(u&&typeof u==="string")u=_p(u);return _wo.call(window,u,n,f);};}catch(e){}
+/* Notify parent of initial URL */
+try{_nav(location.href);}catch(e){}
 
 /* === Frame-busting neutralization === */
 try{Object.defineProperty(window,"top",{get:function(){return window;},configurable:true});}catch(e){}
@@ -284,6 +299,8 @@ function transformHtml(html: string, baseUrl: string): string {
   // Strip meta CSP tags (they block sub-resources even after we strip the header)
   rewritten = rewritten.replace(/<meta[^>]+http-equiv\s*=\s*["']?content-security-policy["']?[^>]*\/?>/gi, "");
   rewritten = rewritten.replace(/<meta[^>]+content-security-policy[^>]*\/?>/gi, "");
+  // Strip meta-refresh redirects — these cause redirect loops when the page is proxied
+  rewritten = rewritten.replace(/<meta[^>]+http-equiv\s*=\s*["']?refresh["']?[^>]*\/?>/gi, "");
   // Rewrite inline <style> blocks
   rewritten = rewritten.replace(/(<style[^>]*>)([\s\S]*?)(<\/style>)/gi, (m, open, css, close) => {
     return open + rewriteCss(css, baseUrl) + close;
@@ -418,7 +435,22 @@ router.all("/proxy", async (req: Request, res: ExpressResponse) => {
     }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (!res.headersSent) res.status(502).json({ error: "Proxy error: " + msg });
+    if (!res.headersSent) {
+      const targetUrl = req.query["url"] as string ?? "";
+      const errHtml = `<!doctype html><html><head><meta charset="utf-8"><title>Proxy Error</title>
+<style>body{font-family:system-ui,sans-serif;background:#0f0f15;color:#ccc;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.box{max-width:480px;padding:32px;background:#1a1a24;border-radius:12px;border:1px solid #333}
+h2{color:#f87171;margin:0 0 12px}p{margin:0 0 8px;line-height:1.5}
+.url{word-break:break-all;color:#888;font-size:13px;background:#111;padding:8px 12px;border-radius:6px;margin-top:16px}
+.retry{display:inline-block;margin-top:20px;padding:10px 20px;background:#22d3ee;color:#000;border-radius:8px;text-decoration:none;font-weight:600;cursor:pointer}
+</style></head><body><div class="box">
+<h2>Could not load this page</h2>
+<p>${msg.includes("redirect") ? "This site uses too many redirects (often because it requires login cookies we can't forward). Try opening it in the About:blank mode from Settings." : msg.includes("timed out") || msg.includes("timeout") ? "The request timed out. The site may be slow or blocking proxy connections." : "The proxy could not reach this page. The site may block external access."}</p>
+<div class="url">${targetUrl.replace(/</g, "&lt;")}</div>
+<a class="retry" onclick="history.back()">← Go Back</a>
+</div></body></html>`;
+      res.status(502).setHeader("Content-Type", "text/html; charset=utf-8").end(errHtml);
+    }
   }
 });
 
