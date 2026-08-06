@@ -259,6 +259,22 @@ try{
 try{var _la=Location.prototype.assign;Location.prototype.assign=function(u){var w=_p(String(u));_nav(w);return _la.call(this,w);};}catch(e){}
 try{var _lr=Location.prototype.replace;Location.prototype.replace=function(u){var w=_p(String(u));_nav(w);return _lr.call(this,w);};}catch(e){}
 try{var _wo=window.open;window.open=function(u,n,f){if(u&&typeof u==="string")u=_p(u);return _wo.call(window,u,n,f);};}catch(e){}
+
+/* === History API interception (SPA navigation: YouTube, TikTok, Twitter, etc.) === */
+try{
+  var _hps=history.pushState.bind(history);
+  history.pushState=function(s,t,u){
+    _hps(s,t,u);
+    try{_nav(location.href);}catch(e){}
+  };
+  var _hrs=history.replaceState.bind(history);
+  history.replaceState=function(s,t,u){
+    _hrs(s,t,u);
+    try{_nav(location.href);}catch(e){}
+  };
+  window.addEventListener('popstate',function(){try{_nav(location.href);}catch(e){}});
+}catch(e){}
+
 /* Notify parent of initial URL */
 try{_nav(location.href);}catch(e){}
 

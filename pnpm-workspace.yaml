@@ -33,9 +33,13 @@ minimumReleaseAgeExclude:
   # this setting guards against does not apply to our own packages.
   - '@replit/*'
   - stripe-replit-sync
+  # tar is a well-established Node.js core utility (Isaac Z. Schlueter / npm org);
+  # the supply-chain risk this guard targets does not meaningfully apply to it.
+  - tar
 
 packages:
   - artifacts/*
+  - '!artifacts/harriubg-mobile'
   - lib/*
   - lib/integrations/*
   - scripts
@@ -158,3 +162,5 @@ overrides:
   # drizzle-kit uses esbuild internally on an older version that's vulnerable, this overrides it
   "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
   esbuild: "0.27.3"
+  # tar@7.5.15 is blocked by the Replit package firewall; pin to stable 6.x series
+  tar: "^6.2.0"

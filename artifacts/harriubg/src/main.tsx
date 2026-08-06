@@ -51259,20 +51259,70 @@ function createNumberPicker(
 }
 
 function openInAboutBlank(url: string, title: string) {
-  try {
-    const win = window.open("about:blank", "_blank");
-    if (!win) {
-      showToast("Pop-up blocked. Allow pop-ups for this site.");
-      return;
-    }
-    win.document.title = title;
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>html,body,iframe{margin:0;padding:0;width:100%;height:100%;border:0;background:#000;overflow:hidden}</style></head><body><iframe src="${escapeAttr(url)}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write; gamepad" allowfullscreen referrerpolicy="no-referrer"></iframe></body></html>`;
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
-  } catch {
-    showToast("Couldn't open in about:blank.");
-  }
+  // Use a closed Shadow DOM overlay with srcdoc iframe — undetectable by extension
+  // URL-matching (srcdoc frames have no URL for extensions to inject into).
+  const host = document.createElement("div");
+  host.style.cssText =
+    "position:fixed;inset:0;z-index:2147483647;pointer-events:auto";
+  // Closed shadow root: document.querySelectorAll('iframe') can't reach inside
+  const shadow = host.attachShadow({ mode: "closed" });
+
+  const wrapper = document.createElement("div");
+  wrapper.style.cssText =
+    "position:absolute;inset:0;display:flex;flex-direction:column;background:#000";
+
+  // Thin toolbar with close + fullscreen buttons
+  const bar = document.createElement("div");
+  bar.style.cssText =
+    "display:flex;align-items:center;justify-content:space-between;padding:4px 10px;" +
+    "background:rgba(0,0,0,.75);flex-shrink:0;gap:8px;font-family:system-ui,sans-serif";
+
+  const titleEl = document.createElement("span");
+  titleEl.textContent = title;
+  titleEl.style.cssText = "color:rgba(255,255,255,.7);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1";
+
+  const fsBtn = document.createElement("button");
+  fsBtn.textContent = "⛶";
+  fsBtn.title = "Fullscreen";
+  fsBtn.style.cssText =
+    "background:rgba(255,255,255,.12);color:#fff;border:none;font-size:15px;" +
+    "cursor:pointer;padding:3px 10px;border-radius:4px;line-height:1";
+  fsBtn.onclick = () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else frame.requestFullscreen?.().catch(() => wrapper.requestFullscreen?.().catch(() => {}));
+  };
+
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "✕";
+  closeBtn.title = "Close";
+  closeBtn.style.cssText =
+    "background:rgba(255,255,255,.12);color:#fff;border:none;font-size:14px;" +
+    "cursor:pointer;padding:3px 10px;border-radius:4px;line-height:1";
+  closeBtn.onclick = () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    host.remove();
+  };
+
+  bar.appendChild(titleEl);
+  bar.appendChild(fsBtn);
+  bar.appendChild(closeBtn);
+
+  // srcdoc iframe: no src URL for extensions to match against
+  const frame = document.createElement("iframe");
+  const safeUrl = url.replace(/"/g, "&quot;");
+  const safeTitle = escapeHtml(title);
+  frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><title>${safeTitle}</title>` +
+    `<style>html,body,iframe{margin:0;padding:0;width:100%;height:100%;border:0;background:#000;overflow:hidden}</style>` +
+    `</head><body><iframe src="${safeUrl}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write; gamepad" allowfullscreen referrerpolicy="no-referrer"></iframe></body></html>`;
+  frame.style.cssText = "width:100%;flex:1;border:0;background:#000";
+  frame.allow =
+    "autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write; gamepad";
+  frame.setAttribute("allowfullscreen", "");
+
+  wrapper.appendChild(bar);
+  wrapper.appendChild(frame);
+  shadow.appendChild(wrapper);
+  document.body.appendChild(host);
 }
 
 async function goFullscreen() {
@@ -51873,7 +51923,7 @@ function renderDevtoolsTab() {
   if (consoleInput) consoleInput.style.display = which === "console" ? "flex" : "none";
 
   if (which === "elements") {
-    const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+    const frame = getBrFrame();
     try {
       const doc = frame?.contentDocument;
       if (!doc || !doc.documentElement) {
@@ -51958,7 +52008,7 @@ function initDevtools() {
   // Console: execute JS inside the proxy iframe
   const runConsole = () => {
     const input = document.getElementById("br-dt-console-cmd") as HTMLInputElement;
-    const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+    const frame = getBrFrame();
     const cmd = input?.value?.trim();
     if (!cmd) return;
     devtoolsLog("console", `> ${cmd}`);
@@ -52083,8 +52133,12 @@ function renderBrBookmarks() {
   }
 }
 
+// Global reference to the browser iframe (lives inside a closed Shadow DOM)
+let _brFrame: HTMLIFrameElement | null = null;
+function getBrFrame(): HTMLIFrameElement | null { return _brFrame; }
+
 function brShowWelcome() {
-  const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+  const frame = getBrFrame();
   const welcome = document.getElementById("br-welcome");
   const blocked = document.getElementById("br-blocked");
   // Clear address bar state for new tab
@@ -52117,12 +52171,13 @@ function brSwitchTab(id: string) {
   const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
   if (urlInput) urlInput.value = t.url;
   if (t.url) {
-    const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+    const frame = getBrFrame();
     const welcome = document.getElementById("br-welcome");
     const blocked = document.getElementById("br-blocked");
     if (frame) {
       frame.style.display = "block";
-      frame.src = t.url;
+      // Always route through proxy to preserve navigation rewriting
+      frame.src = `/api/proxy?url=${encodeURIComponent(t.url)}`;
     }
     if (welcome) welcome.style.display = "none";
     if (blocked) blocked.classList.remove("visible");
@@ -52213,7 +52268,7 @@ async function brNavigateTo(rawUrl: string) {
     renderBrTabs();
   }
   updateBmToggle(url);
-  const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+  const frame = getBrFrame();
   if (frame) {
     frame.style.display = "block";
     frame.src = `/api/proxy?url=${encodeURIComponent(url)}`;
@@ -52230,7 +52285,22 @@ function updateBmToggle(url: string) {
 
 function initBrowser() {
   const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
-  const frame = document.getElementById("br-frame") as HTMLIFrameElement;
+  // Register global reference + wrap in closed Shadow DOM (hides from extension querySelectorAll)
+  const _rawFrame = document.getElementById("br-frame") as HTMLIFrameElement | null;
+  if (_rawFrame && !_brFrame) {
+    const _vp = _rawFrame.parentElement;
+    if (_vp) {
+      const _host = document.createElement("div");
+      // display:contents makes shadow host transparent to layout so iframe positioning is preserved
+      _host.style.cssText = "display:contents";
+      const _shadow = _host.attachShadow({ mode: "closed" });
+      _vp.insertBefore(_host, _rawFrame);
+      _rawFrame.remove();
+      _shadow.appendChild(_rawFrame);
+    }
+    _brFrame = _rawFrame;
+  }
+  const frame = getBrFrame()!;
 
   urlInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") brNavigateTo(urlInput.value);
