@@ -52133,9 +52133,12 @@ function renderBrBookmarks() {
   }
 }
 
-// Global reference to the browser iframe (lives inside a closed Shadow DOM)
+// Keep the browser iframe in the normal DOM so layout, focus, fullscreen, and
+// browser accessibility work consistently in the Replit preview.
 let _brFrame: HTMLIFrameElement | null = null;
-function getBrFrame(): HTMLIFrameElement | null { return _brFrame; }
+function getBrFrame(): HTMLIFrameElement | null {
+  return _brFrame;
+}
 
 function brShowWelcome() {
   const frame = getBrFrame();
@@ -52285,19 +52288,11 @@ function updateBmToggle(url: string) {
 
 function initBrowser() {
   const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
-  // Register global reference + wrap in closed Shadow DOM (hides from extension querySelectorAll)
+  // Register the actual frame directly. A shadow wrapper made the iframe
+  // intermittently measure as zero-height in the proxied preview and also
+  // prevented normal browser tooling from reporting useful load failures.
   const _rawFrame = document.getElementById("br-frame") as HTMLIFrameElement | null;
   if (_rawFrame && !_brFrame) {
-    const _vp = _rawFrame.parentElement;
-    if (_vp) {
-      const _host = document.createElement("div");
-      // display:contents makes shadow host transparent to layout so iframe positioning is preserved
-      _host.style.cssText = "display:contents";
-      const _shadow = _host.attachShadow({ mode: "closed" });
-      _vp.insertBefore(_host, _rawFrame);
-      _rawFrame.remove();
-      _shadow.appendChild(_rawFrame);
-    }
     _brFrame = _rawFrame;
   }
   const frame = getBrFrame()!;
@@ -52378,7 +52373,6 @@ function initBrowser() {
     }
   });
 
-  let loadBlockTimer: ReturnType<typeof setTimeout> | null = null;
   const blocked = document.getElementById("br-blocked");
 
   let loadingFallback: ReturnType<typeof setTimeout> | null = null;
@@ -52399,14 +52393,15 @@ function initBrowser() {
 
   frame?.addEventListener("load", () => {
     clearLoadingFallback();
-    if (loadBlockTimer) {
-      clearTimeout(loadBlockTimer);
-      loadBlockTimer = null;
-    }
     blocked?.classList.remove("visible");
     brSetLoading(false);
-    // Note: contentWindow.location / contentDocument are not accessible without
-    // allow-same-origin in the sandbox — URL bar is updated via proxy-navigate messages instead.
+    // Navigation and URL-bar updates come from the proxy's postMessage hook.
+  });
+
+  frame?.addEventListener("error", () => {
+    clearLoadingFallback();
+    brSetLoading(false);
+    blocked?.classList.add("visible");
   });
 
   // Listen for navigation/title/request messages from the injected proxy script
@@ -52448,16 +52443,7 @@ function initBrowser() {
   const origNavigate = brNavigateTo;
   (window as any).__brNavHook = (url: string) => {
     startLoadingFallback();
-    if (loadBlockTimer) clearTimeout(loadBlockTimer);
     blocked?.classList.remove("visible");
-    loadBlockTimer = setTimeout(() => {
-      try {
-        if (!frame?.contentWindow || frame.src === "about:blank") return;
-        frame.contentWindow.document; // will throw if cross-origin blocked
-      } catch {
-        // cross-origin but still visible — not blocked, just sandboxed
-      }
-    }, 3500);
   };
 
   // Hero proxy bar wires up to browser tab

@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "bash", "python-base-3.13"]
+modules = ["nodejs-20", "web", "bash"]
 
 [deployment]
 router = "application"
@@ -10,6 +10,43 @@ env = { "CI" = "true" }
 
 [workflows]
 runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "HarriUBG web"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "HarriUBG API"
+
+[[workflows.workflow]]
+name = "HarriUBG web"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "export PORT=26170 BASE_PATH=/ && pnpm --filter @workspace/harriubg run dev"
+waitForPort = 26170
+
+[[workflows.workflow]]
+name = "HarriUBG API"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "export PORT=8080 NODE_ENV=development && pnpm --filter @workspace/api-server run dev"
+waitForPort = 8080
 
 [agent]
 stack = "PNPM_WORKSPACE"
