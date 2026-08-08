@@ -1,1 +1,2 @@
 - [Scramjet IDB config codec](scramjet-idb-config.md) — codec must be stored as stringified functions, not live functions (IDB uses structured clone)
+- [Imported artifact workflows](imported-artifact-workflows.md) — imported artifact services can register duplicate legacy workflows; use the artifact-owned services for ports and routing

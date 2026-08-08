@@ -215,11 +215,25 @@ function buildInjection(baseUrl: string): string {
   return `<script>
 (function(){
 var _b="${safeBase}";
+var _real=_b;
 var _px="/api/proxy?url=";
+function _abs(u){
+  try{return new URL(String(u),_real).href;}catch(e){return String(u);}
+}
+function _unproxy(u){
+  try{
+    var x=new URL(String(u),location.href);
+    if(x.pathname.indexOf("/api/proxy")!==-1){
+      var target=x.searchParams.get("url");
+      if(target)return target;
+    }
+  }catch(e){}
+  return String(u);
+}
 function _p(u){
   if(!u||typeof u!=="string")return u;
   if(u.startsWith("data:")||u.startsWith("blob:")||u.startsWith("javascript:")||u.startsWith("#")||u.startsWith("about:")||u.indexOf("/api/proxy")!==-1)return u;
-  try{var a=new URL(u,_b).href;if(a.startsWith("http://")||a.startsWith("https://"))return _px+encodeURIComponent(a);}catch(e){}
+  try{var a=_abs(u);if(a.startsWith("http://")||a.startsWith("https://"))return _px+encodeURIComponent(a);}catch(e){}
   return u;
 }
 
@@ -264,13 +278,19 @@ try{var _wo=window.open;window.open=function(u,n,f){if(u&&typeof u==="string")u=
 try{
   var _hps=history.pushState.bind(history);
   history.pushState=function(s,t,u){
-    _hps(s,t,u);
-    try{_nav(location.href);}catch(e){}
+    var a=u==null?_real:_abs(u);
+    var w=_p(a);
+    _real=a;
+    _hps(s,t,w);
+    try{_nav(w);}catch(e){}
   };
   var _hrs=history.replaceState.bind(history);
   history.replaceState=function(s,t,u){
-    _hrs(s,t,u);
-    try{_nav(location.href);}catch(e){}
+    var a=u==null?_real:_abs(u);
+    var w=_p(a);
+    _real=a;
+    _hrs(s,t,w);
+    try{_nav(w);}catch(e){}
   };
   window.addEventListener('popstate',function(){try{_nav(location.href);}catch(e){}});
 }catch(e){}
@@ -301,7 +321,10 @@ document.addEventListener("click",function(e){
 document.addEventListener("submit",function(e){
   var f=e.target;if(!f||!f.action)return;
   if((f.method||"get").toLowerCase()==="get"){
-    var w=_p(f.action);if(w!==f.action){e.preventDefault();location.href=w+"?"+new URLSearchParams(new FormData(f));}
+    var a=_abs(_unproxy(f.action));
+    var q=new URLSearchParams(new FormData(f)).toString();
+    if(q)a+=(a.indexOf("?")===-1?"?":"&")+q;
+    var w=_p(a);if(w!==a){e.preventDefault();location.href=w;}
   }
 },true);
 })();
