@@ -51981,7 +51981,7 @@ function renderDevtoolsTab() {
       <div class="br-dt-info-row"><span class="br-dt-key">URL</span><span class="br-dt-val">${escapeHtml(tab?.url || "(none)")}</span></div>
       <div class="br-dt-info-row"><span class="br-dt-key">Title</span><span class="br-dt-val">${escapeHtml(tab?.title || "(none)")}</span></div>
       <div class="br-dt-info-row"><span class="br-dt-key">Protocol</span><span class="br-dt-val">${tab?.url?.startsWith("https") ? "HTTPS ✓" : tab?.url?.startsWith("http") ? "HTTP (not secure)" : "-"}</span></div>
-      <div class="br-dt-info-row"><span class="br-dt-key">Proxy</span><span class="br-dt-val">/api/proxy (fetch+XHR+location interceptors active)</span></div>
+      <div class="br-dt-info-row"><span class="br-dt-key">Mode</span><span class="br-dt-val">Direct iframe navigation</span></div>
     `;
   }
   pane.scrollTop = 0;
@@ -52179,8 +52179,7 @@ function brSwitchTab(id: string) {
     const blocked = document.getElementById("br-blocked");
     if (frame) {
       frame.style.display = "block";
-      // Always route through proxy to preserve navigation rewriting
-      frame.src = `/api/proxy?url=${encodeURIComponent(t.url)}`;
+      frame.src = t.url;
     }
     if (welcome) welcome.style.display = "none";
     if (blocked) blocked.classList.remove("visible");
@@ -52274,7 +52273,7 @@ async function brNavigateTo(rawUrl: string) {
   const frame = getBrFrame();
   if (frame) {
     frame.style.display = "block";
-    frame.src = `/api/proxy?url=${encodeURIComponent(url)}`;
+    frame.src = url;
   }
 }
 
@@ -52315,7 +52314,7 @@ function initBrowser() {
     if (frame) {
       const tab = brTabs.find((t) => t.id === brActiveId);
       if (tab?.url) {
-        frame.src = `/api/proxy?url=${encodeURIComponent(tab.url)}`;
+        frame.src = tab.url;
       } else {
         const src = frame.src;
         frame.src = "about:blank";
@@ -52395,7 +52394,8 @@ function initBrowser() {
     clearLoadingFallback();
     blocked?.classList.remove("visible");
     brSetLoading(false);
-    // Navigation and URL-bar updates come from the proxy's postMessage hook.
+    // Cross-origin direct pages cannot expose their internal URL to the parent.
+    // The address bar therefore remains at the last user-entered navigation.
   });
 
   frame?.addEventListener("error", () => {
