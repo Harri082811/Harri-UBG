@@ -52029,12 +52029,9 @@ function initDevtools() {
     if ((e as KeyboardEvent).key === "Enter") runConsole();
   });
 
-  // Intercept messages from proxy iframe for network/console logging
+  // Keep the browser devtools panel available for the direct iframe.
   window.addEventListener("message", (evt) => {
-    if (evt.data?.type === "proxy-request") {
-      devtoolsLog("network", `${evt.data.method || "GET"} ${evt.data.url} ${evt.data.status ?? ""}`);
-    }
-    if (evt.data?.type === "proxy-console") {
+    if (evt.data?.type === "direct-iframe-console") {
       devtoolsLog("console", `[page] ${evt.data.msg}`);
     }
   });
@@ -52404,17 +52401,12 @@ function initBrowser() {
     blocked?.classList.add("visible");
   });
 
-  // Listen for navigation/title/request messages from the injected proxy script
+  // Direct cross-origin pages cannot expose their internal navigation to the parent.
   window.addEventListener("message", (ev) => {
     if (!ev.data || typeof ev.data !== "object") return;
     const { type, url } = ev.data as { type: string; url?: string };
-    if (type === "proxy-navigate" && url) {
-      // Decode the real URL from the proxy URL for display in the address bar
-      let display = url;
-      try {
-        const m = url.match(/\/api\/proxy\?url=(.+)/);
-        if (m) display = decodeURIComponent(m[1]);
-      } catch {}
+    if (type === "direct-iframe-navigate" && url) {
+      const display = url;
       const tab = brTabs.find((t) => t.id === brActiveId);
       if (tab) {
         tab.url = display;
@@ -52528,23 +52520,7 @@ function showToast(msg: string) {
    ============================================================ */
 
 async function boot() {
-  // Unregister stale SWs then register UV service worker
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker
-      .getRegistrations()
-      .then((regs) => {
-        Promise.all(regs.map((r) => r.unregister())).then(() => {
-          navigator.serviceWorker
-            .register("/uv.sw.js", { scope: "/" })
-            .catch(() => {});
-        });
-      })
-      .catch(() => {
-        navigator.serviceWorker
-          .register("/uv.sw.js", { scope: "/" })
-          .catch(() => {});
-      });
-  }
+  // No proxy service worker: browser navigation is direct.
   applyTheme();
   applyCloak();
   applyBgEffects();
