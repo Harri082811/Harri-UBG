@@ -1306,6 +1306,15 @@ main {
   50% { transform: translateY(-8px); }
 }
 
+.hero-sub {
+  margin-top: 18px;
+  max-width: 520px;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
 /* ============================================================
    Settings textarea
    ============================================================ */

@@ -50618,17 +50618,17 @@ function initConstellation() {
    ============================================================ */
 
 const DEFAULT_GREETINGS = [
-  "Welcome back!",
-  "Let's play something!",
-  "What are we searching today?",
-  "Browse free, play anything!",
-  "Ready to explore?",
-  "Your playground awaits",
-  "Glad you're here",
-  "What's on your mind?",
-  "Enjoy the ride",
-  "Harri is the goat",
-  "Where to today?",
+  "Welcome back to the movies!",
+  "Pick a movie, press play.",
+  "What are we watching tonight?",
+  "Popcorn ready?",
+  "Something good is playing.",
+  "Movie night starts here.",
+  "Shows and movies, all in one place.",
+  "Find your next favorite.",
+  "Lights, camera, action!",
+  "Grab a seat, the show's starting.",
+  "Stream something great today.",
 ];
 let lastGreetingIdx = -1;
 
@@ -50839,8 +50839,6 @@ function escapeAttr(s: string): string {
 
 function renderFeatured() {
   const fGames = document.getElementById("featured-games");
-  const fMovies = document.getElementById("featured-movies")!;
-  const fShows = document.getElementById("featured-shows");
 
   if (fGames) {
     fGames.innerHTML = "";
@@ -50856,9 +50854,27 @@ function renderFeatured() {
     }
   }
 
-  fMovies.innerHTML = "";
-  pickRandom(MOVIES, 12).forEach((m) => fMovies.appendChild(movieCard(m)));
+  // Popular Now — catalog order is real TMDB popularity
+  const popular = document.getElementById("popular-movies");
+  if (popular) {
+    popular.innerHTML = "";
+    MOVIES.slice(0, 12).forEach((m) => popular.appendChild(movieCard(m)));
+  }
 
+  // New Releases — newest first by real release year, skipping the popular row
+  const fresh = document.getElementById("new-releases");
+  if (fresh) {
+    fresh.innerHTML = "";
+    const popularIds = new Set(MOVIES.slice(0, 12).map((m) => m.id));
+    [...MOVIES]
+      .sort((a, b) => b.year - a.year)
+      .filter((m) => !popularIds.has(m.id))
+      .slice(0, 12)
+      .forEach((m) => fresh.appendChild(movieCard(m)));
+  }
+
+  // Trending Shows — recent, newest first
+  const fShows = document.getElementById("featured-shows");
   if (fShows) {
     fShows.innerHTML = "";
     if (SHOWS.length > 0) {
@@ -50898,8 +50914,8 @@ function applySortMedia<T extends { title: string; year: number }>(
     return [...list].sort(
       (a, b) => b.year - a.year || a.title.localeCompare(b.title),
     );
-  if (mode === "popularity")
-    return [...list].sort((a, b) => a.title.localeCompare(b.title));
+  // "popularity": catalog is already ordered by real TMDB popularity
+  if (mode === "popularity") return [...list];
   return list;
 }
 
