@@ -50663,10 +50663,10 @@ function setTab(tab: Tab) {
   window.scrollTo({ top: 0, behavior: "smooth" });
   history.replaceState(null, "", `#${tab}`);
   if (tab === "home") rotateGreeting();
-  if (tab === "browser" && brTabs.length === 0) {
+  if (tab === "browser" && document.getElementById("view-browser") && brTabs.length === 0) {
     brOpenTab("");
   }
-  if (tab === "games" && !gamesNoticeSeen) {
+  if (tab === "games" && document.getElementById("games-grid") && !gamesNoticeSeen) {
     gamesNoticeSeen = true;
     showGamesNotice();
   }
@@ -50838,20 +50838,22 @@ function escapeAttr(s: string): string {
    ============================================================ */
 
 function renderFeatured() {
-  const fGames = document.getElementById("featured-games")!;
+  const fGames = document.getElementById("featured-games");
   const fMovies = document.getElementById("featured-movies")!;
   const fShows = document.getElementById("featured-shows");
 
-  fGames.innerHTML = "";
-  if (GAMES.length === 0) {
-    for (let i = 0; i < 8; i++) {
-      const sk = document.createElement("div");
-      sk.className = "card-tile skeleton";
-      sk.innerHTML = `<div class="card-cover"></div><div class="card-meta"><div class="card-title">&nbsp;</div><div class="card-sub">&nbsp;</div></div>`;
-      fGames.appendChild(sk);
+  if (fGames) {
+    fGames.innerHTML = "";
+    if (GAMES.length === 0) {
+      for (let i = 0; i < 8; i++) {
+        const sk = document.createElement("div");
+        sk.className = "card-tile skeleton";
+        sk.innerHTML = `<div class="card-cover"></div><div class="card-meta"><div class="card-title">&nbsp;</div><div class="card-sub">&nbsp;</div></div>`;
+        fGames.appendChild(sk);
+      }
+    } else {
+      pickRandom(GAMES, 12).forEach((g) => fGames.appendChild(gameCard(g)));
     }
-  } else {
-    pickRandom(GAMES, 12).forEach((g) => fGames.appendChild(gameCard(g)));
   }
 
   fMovies.innerHTML = "";
@@ -50902,7 +50904,8 @@ function applySortMedia<T extends { title: string; year: number }>(
 }
 
 function renderGames(query = "") {
-  const grid = document.getElementById("games-grid")!;
+  const grid = document.getElementById("games-grid");
+  if (!grid) return;
   const empty = document.getElementById("games-empty")!;
   grid.innerHTML = "";
   const q = query.trim().toLowerCase();
@@ -52239,6 +52242,7 @@ function updateSecureIcon(url: string) {
 }
 
 async function brNavigateTo(rawUrl: string) {
+  if (!_brFrame) return;
   const url = normBrUrl(rawUrl);
   if (!url) return;
   const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
@@ -52283,6 +52287,7 @@ function updateBmToggle(url: string) {
 }
 
 function initBrowser() {
+  if (!document.getElementById("view-browser")) return;
   const urlInput = document.getElementById("br-url-input") as HTMLInputElement;
   // Register the actual frame directly. A shadow wrapper made the iframe
   // intermittently measure as zero-height in the proxied preview and also
@@ -52463,13 +52468,15 @@ function initBrowser() {
 }
 
 function initSearch() {
-  const gSearch = document.getElementById("games-search") as HTMLInputElement;
+  const gSearch = document.getElementById(
+    "games-search",
+  ) as HTMLInputElement | null;
   const mSearch = document.getElementById("movies-search") as HTMLInputElement;
   const sSearch = document.getElementById(
     "shows-search",
   ) as HTMLInputElement | null;
 
-  gSearch.addEventListener("input", (e) => {
+  gSearch?.addEventListener("input", (e) => {
     renderGames((e.target as HTMLInputElement).value);
   });
   mSearch.addEventListener("input", (e) => {
@@ -52483,7 +52490,7 @@ function initSearch() {
 
   const gameSortEl = createCustomSelect(SORT_OPTIONS, "default", (val) => {
     gameSort = val as SortMode;
-    renderGames(gSearch.value);
+    renderGames(gSearch?.value ?? "");
   });
   document.getElementById("games-sort-wrap")?.appendChild(gameSortEl);
 
@@ -52532,16 +52539,12 @@ async function boot() {
   renderHomeShortcuts();
   bindSettings();
   renderFeatured();
-  renderGames();
   renderMovies();
   renderShows();
 
-  // Load games + movie/show posters in parallel
-  await Promise.all([loadGames(), loadPosters()]);
+  // Load movie/show posters
+  await loadPosters();
   renderFeatured();
-  renderGames(
-    (document.getElementById("games-search") as HTMLInputElement).value,
-  );
   renderMovies(
     (document.getElementById("movies-search") as HTMLInputElement).value,
   );
