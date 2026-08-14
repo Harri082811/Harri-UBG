@@ -249,6 +249,78 @@ main {
   margin: 0;
 }
 
+#hero-greeting {
+  cursor: pointer;
+}
+#hero-greeting:hover {
+  color: var(--accent);
+}
+
+.hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+  align-items: center;
+}
+.hero-chips-label {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-right: 2px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 4px;
+}
+.chip {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.chip:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--text);
+}
+.chip-on,
+.chip-on:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.results-count {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin: 6px 0 0;
+}
+
+.more-btn {
+  display: block;
+  margin: 24px auto 8px;
+  appearance: none;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font: inherit;
+  padding: 12px 22px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.more-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .hero-cta {
   display: flex;
   flex-wrap: wrap;

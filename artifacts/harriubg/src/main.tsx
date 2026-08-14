@@ -50707,6 +50707,17 @@ function initTabs() {
   document.querySelectorAll<HTMLButtonElement>("[data-go]").forEach((btn) => {
     btn.addEventListener("click", () => setTab(btn.dataset.go as Tab));
   });
+  document.querySelectorAll<HTMLButtonElement>("[data-genre]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const g = btn.dataset.genre!;
+      movieGenre = g;
+      showAllMovies = false;
+      setTab("movies");
+      renderGenreChips("movies-genres", MOVIE_GENRES, movieGenre, selectMovieGenre);
+      renderMovies(inputValue("movies-search"));
+    });
+  });
+  document.getElementById("hero-greeting")?.addEventListener("click", rotateGreeting);
 
   const initial = (location.hash.replace("#", "") || "home") as Tab;
   if (
@@ -50887,6 +50898,24 @@ function renderFeatured() {
   }
 }
 
+const HOME_GENRE_RAILS: { id: string; genre: string }[] = [
+  { id: "genre-rail-action", genre: "Action" },
+  { id: "genre-rail-comedy", genre: "Comedy" },
+  { id: "genre-rail-animation", genre: "Animation" },
+  { id: "genre-rail-horror", genre: "Horror" },
+];
+
+function renderGenreRails() {
+  for (const r of HOME_GENRE_RAILS) {
+    const track = document.getElementById(r.id);
+    if (!track) continue;
+    track.innerHTML = "";
+    MOVIES.filter((m) => inGenre(m.genre, r.genre))
+      .slice(0, 10)
+      .forEach((m) => track.appendChild(movieCard(m)));
+  }
+}
+
 function pickRandom<T>(arr: T[], n: number): T[] {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -50900,6 +50929,77 @@ type SortMode = "default" | "popularity" | "release";
 let gameSort: SortMode = "default";
 let movieSort: SortMode = "default";
 let showSort: SortMode = "default";
+
+let movieGenre = "All";
+let showGenre = "All";
+let showAllMovies = false;
+let showAllShows = false;
+
+function inGenre(genreStr: string, genre: string): boolean {
+  return genreStr.split(/[·,]/).some((g) => g.trim() === genre);
+}
+
+function matchMedia(
+  m: { title: string; genre: string; year: number },
+  q: string,
+): boolean {
+  return (
+    m.title.toLowerCase().includes(q) ||
+    m.genre.toLowerCase().includes(q) ||
+    String(m.year).includes(q)
+  );
+}
+
+function mediaGenres<T extends { genre: string }>(list: T[]): string[] {
+  const counts = new Map<string, number>();
+  for (const it of list) {
+    for (const g of it.genre.split(/[·,]/)) {
+      const t = g.trim();
+      if (t) counts.set(t, (counts.get(t) || 0) + 1);
+    }
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([g]) => g);
+}
+const MOVIE_GENRES = mediaGenres(MOVIES);
+const SHOW_GENRES = mediaGenres(SHOWS);
+
+function renderGenreChips(
+  containerId: string,
+  genres: string[],
+  current: string,
+  onPick: (g: string) => void,
+) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = "";
+  const mk = (label: string, active: boolean) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip" + (active ? " chip-on" : "");
+    b.textContent = label;
+    b.addEventListener("click", () => onPick(label));
+    el.appendChild(b);
+  };
+  mk("All", current === "All");
+  genres.forEach((g) => mk(g, current === g));
+}
+
+function selectMovieGenre(g: string) {
+  movieGenre = g;
+  showAllMovies = false;
+  renderGenreChips("movies-genres", MOVIE_GENRES, movieGenre, selectMovieGenre);
+  renderMovies(inputValue("movies-search"));
+}
+function selectShowGenre(g: string) {
+  showGenre = g;
+  showAllShows = false;
+  renderGenreChips("shows-genres", SHOW_GENRES, showGenre, selectShowGenre);
+  renderShows(inputValue("shows-search"));
+}
+function inputValue(id: string): string {
+  const el = document.getElementById(id) as HTMLInputElement | null;
+  return el ? el.value : "";
+}
 
 function applySortGames(list: Game[]): Game[] {
   if (gameSort === "popularity") return [...list].sort((a, b) => a.id - b.id);
@@ -50951,12 +51051,30 @@ function renderMovies(query = "") {
   const empty = document.getElementById("movies-empty")!;
   grid.innerHTML = "";
   const q = query.trim().toLowerCase();
-  const base = q
-    ? MOVIES.filter((m) => m.title.toLowerCase().includes(q))
-    : MOVIES;
+  let base = q ? MOVIES.filter((m) => matchMedia(m, q)) : MOVIES;
+  if (movieGenre !== "All")
+    base = base.filter((m) => inGenre(m.genre, movieGenre));
   const filtered = applySortMedia(base, movieSort);
+  const limited = !q && movieGenre === "All" && !showAllMovies;
+  const shown = limited ? filtered.slice(0, 60) : filtered;
+  shown.forEach((m) => grid.appendChild(movieCard(m)));
+  const count = document.getElementById("movies-count");
+  if (count) {
+    count.textContent =
+      limited && filtered.length > shown.length
+        ? `Top ${shown.length.toLocaleString()} of ${filtered.length.toLocaleString()} titles`
+        : `${filtered.length.toLocaleString()} title${filtered.length === 1 ? "" : "s"}`;
+  }
+  const more = document.getElementById("movies-more");
+  if (more) {
+    more.hidden = !limited || filtered.length <= shown.length;
+    more.textContent = `Show all ${filtered.length.toLocaleString()} titles`;
+  }
   empty.hidden = filtered.length > 0;
-  filtered.forEach((m) => grid.appendChild(movieCard(m)));
+  empty.textContent =
+    filtered.length === 0
+      ? "No matches — try a different search or genre."
+      : "No movies here yet.";
 }
 
 function renderShows(query = "") {
@@ -50964,12 +51082,30 @@ function renderShows(query = "") {
   const empty = document.getElementById("shows-empty")!;
   grid.innerHTML = "";
   const q = query.trim().toLowerCase();
-  const base = q
-    ? SHOWS.filter((s) => s.title.toLowerCase().includes(q))
-    : SHOWS;
+  let base = q ? SHOWS.filter((s) => matchMedia(s, q)) : SHOWS;
+  if (showGenre !== "All")
+    base = base.filter((s) => inGenre(s.genre, showGenre));
   const filtered = applySortMedia(base, showSort);
+  const limited = !q && showGenre === "All" && !showAllShows;
+  const shown = limited ? filtered.slice(0, 60) : filtered;
+  shown.forEach((s) => grid.appendChild(showCard(s)));
+  const count = document.getElementById("shows-count");
+  if (count) {
+    count.textContent =
+      limited && filtered.length > shown.length
+        ? `Top ${shown.length.toLocaleString()} of ${filtered.length.toLocaleString()} shows`
+        : `${filtered.length.toLocaleString()} show${filtered.length === 1 ? "" : "s"}`;
+  }
+  const more = document.getElementById("shows-more");
+  if (more) {
+    more.hidden = !limited || filtered.length <= shown.length;
+    more.textContent = `Show all ${filtered.length.toLocaleString()} shows`;
+  }
   empty.hidden = filtered.length > 0;
-  filtered.forEach((s) => grid.appendChild(showCard(s)));
+  empty.textContent =
+    filtered.length === 0
+      ? "No matches — try a different search or genre."
+      : "No shows here yet.";
 }
 
 /* ============================================================
@@ -52521,6 +52657,17 @@ function initSearch() {
     renderShows(sSearch?.value || "");
   });
   document.getElementById("shows-sort-wrap")?.appendChild(showSortEl);
+
+  renderGenreChips("movies-genres", MOVIE_GENRES, movieGenre, selectMovieGenre);
+  renderGenreChips("shows-genres", SHOW_GENRES, showGenre, selectShowGenre);
+  document.getElementById("movies-more")?.addEventListener("click", () => {
+    showAllMovies = true;
+    renderMovies(mSearch.value);
+  });
+  document.getElementById("shows-more")?.addEventListener("click", () => {
+    showAllShows = true;
+    renderShows(sSearch?.value || "");
+  });
 }
 
 /* ============================================================
@@ -52555,12 +52702,14 @@ async function boot() {
   renderHomeShortcuts();
   bindSettings();
   renderFeatured();
+  renderGenreRails();
   renderMovies();
   renderShows();
 
   // Load movie/show posters
   await loadPosters();
   renderFeatured();
+  renderGenreRails();
   renderMovies(
     (document.getElementById("movies-search") as HTMLInputElement).value,
   );
