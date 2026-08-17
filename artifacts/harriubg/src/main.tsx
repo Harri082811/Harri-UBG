@@ -50339,8 +50339,6 @@ function buildEmbedUrl(movieId: number, server: string): string {
       return `https://multiembed.mov/?video_id=${movieId}&tmdb=1`;
     case "videasy":
       return `https://player.videasy.net/movie/${movieId}`;
-    case "autoembed":
-      return `https://autoembed.cc/movie/tmdb/${movieId}`;
     case "vidlink.pro":
       return `https://vidlink.pro/movie/${movieId}?primaryColor=22d3ee&secondaryColor=a78bfa&iconColor=ffffff&autoplay=false`;
     case "2embed.cc":
@@ -50361,8 +50359,6 @@ function buildShowEmbedUrl(
       return `https://multiembed.mov/?video_id=${showId}&tmdb=1&s=${season}&e=${episode}`;
     case "videasy":
       return `https://player.videasy.net/tv/${showId}/${season}/${episode}`;
-    case "autoembed":
-      return `https://autoembed.cc/tv/tmdb/${showId}-${season}-${episode}`;
     case "vidlink.pro":
       return `https://vidlink.pro/tv/${showId}/${season}/${episode}?primaryColor=22d3ee&secondaryColor=a78bfa&iconColor=ffffff&autoplay=false`;
     case "2embed.cc":
@@ -50416,9 +50412,8 @@ function cloakGameHtml(g: Game): string {
 const SERVERS: Array<{ id: string; label: string }> = [
   { id: "multiembed", label: "Server 1" },
   { id: "videasy", label: "Server 2" },
-  { id: "autoembed", label: "Server 3" },
-  { id: "vidlink.pro", label: "Server 4" },
-  { id: "2embed.cc", label: "Server 5" },
+  { id: "vidlink.pro", label: "Server 3" },
+  { id: "2embed.cc", label: "Server 4" },
 ];
 
 /* ============================================================
@@ -51462,13 +51457,8 @@ function openInAboutBlank(url: string, title: string) {
   bar.appendChild(fsBtn);
   bar.appendChild(closeBtn);
 
-  // srcdoc iframe: no src URL for extensions to match against
   const frame = document.createElement("iframe");
-  const safeUrl = url.replace(/"/g, "&quot;");
-  const safeTitle = escapeHtml(title);
-  frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><title>${safeTitle}</title>` +
-    `<style>html,body,iframe{margin:0;padding:0;width:100%;height:100%;border:0;background:#000;overflow:hidden}</style>` +
-    `</head><body><iframe src="${safeUrl}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write; gamepad" allowfullscreen referrerpolicy="no-referrer"></iframe></body></html>`;
+  frame.src = url;
   frame.style.cssText = "width:100%;flex:1;border:0;background:#000";
   frame.allow =
     "autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write; gamepad";
@@ -51563,10 +51553,9 @@ const CLOAK_ICON_OPTIONS = [
 
 const SERVER_OPTIONS = [
   { value: "multiembed", label: "Server 1" },
-  { value: "videasy", label: "Server 2 " },
-  { value: "autoembed", label: "Server 3" },
-  { value: "vidlink.pro", label: "Server 4 (recommended)" },
-  { value: "2embed.cc", label: "Server 5" },
+  { value: "videasy", label: "Server 2" },
+  { value: "vidlink.pro", label: "Server 3" },
+  { value: "2embed.cc", label: "Server 4" },
 ];
 
 function bindSettings() {
