@@ -51160,14 +51160,14 @@ function openGame(g: Game) {
 
   const f = document.getElementById("modal-frame") as HTMLIFrameElement;
   f.src = "about:blank";
-  const blobUrl = cloakGameHtml(g);
 
   if (settings.aboutBlank) {
-    openInAboutBlank(blobUrl, g.name);
+    openInAboutBlank(g.url, g.name);
     closeModal();
     return;
   }
 
+  const blobUrl = cloakGameHtml(g);
   f.onload = () => setLoading(false);
   f.src = blobUrl;
 }
@@ -51184,17 +51184,16 @@ function openMovie(m: Movie) {
   document.getElementById("modal-title")!.textContent = m.title;
 
   const realUrl = buildEmbedUrl(m.id, settings.server);
-  const blobUrl = cloakUrl(realUrl, m.title);
 
   if (settings.aboutBlank) {
-    openInAboutBlank(blobUrl, m.title);
+    openInAboutBlank(realUrl, m.title);
     return;
   }
 
   openModal();
   const f = document.getElementById("modal-frame") as HTMLIFrameElement;
   f.onload = () => setLoading(false);
-  f.src = blobUrl;
+  f.src = cloakUrl(realUrl, m.title);
 
   const sr = document.getElementById("server-row")!;
   sr.innerHTML = "";
@@ -51228,22 +51227,20 @@ async function openShow(sh: Show) {
   // Try to load season list. Falls back to S1E1 if TMDB is unreachable.
   const details = await fetchShowDetails(sh.id);
 
-  const playUrl = (server: string) =>
-    cloakUrl(
-      buildShowEmbedUrl(sh.id, activeShowSeason, activeShowEpisode, server),
-      sh.title,
-    );
+  const rawPlayUrl = (server: string) =>
+    buildShowEmbedUrl(sh.id, activeShowSeason, activeShowEpisode, server);
+  const cloakedPlayUrl = (server: string) =>
+    cloakUrl(rawPlayUrl(server), sh.title);
 
   const f = document.getElementById("modal-frame") as HTMLIFrameElement;
   f.onload = () => setLoading(false);
 
-  const startUrl = playUrl(settings.server);
   if (settings.aboutBlank) {
-    openInAboutBlank(startUrl, sh.title);
+    openInAboutBlank(rawPlayUrl(settings.server), sh.title);
     closeModal();
     return;
   }
-  f.src = startUrl;
+  f.src = cloakedPlayUrl(settings.server);
 
   // Build server picker (same as movies).
   const sr = document.getElementById("server-row")!;
@@ -51258,7 +51255,7 @@ async function openShow(sh: Show) {
       );
       b.classList.add("active");
       setLoading(true);
-      f.src = playUrl(s.id);
+      f.src = cloakedPlayUrl(s.id);
     });
     sr.appendChild(b);
   });
@@ -51286,7 +51283,7 @@ async function openShow(sh: Show) {
         (v) => {
           activeShowSeason = parseInt(v) || 1;
           setLoading(true);
-          f.src = playUrl(settings.server);
+          f.src = cloakedPlayUrl(settings.server);
         },
         true,
       ),
@@ -51298,7 +51295,7 @@ async function openShow(sh: Show) {
         (v) => {
           activeShowEpisode = parseInt(v) || 1;
           setLoading(true);
-          f.src = playUrl(settings.server);
+          f.src = cloakedPlayUrl(settings.server);
         },
         true,
       ),
@@ -51327,7 +51324,7 @@ async function openShow(sh: Show) {
           activeShowSeason = resolved.season;
           activeShowEpisode = resolved.episode;
           setLoading(true);
-          f.src = playUrl(settings.server);
+          f.src = cloakedPlayUrl(settings.server);
         },
         true,
       ),
@@ -51358,7 +51355,7 @@ async function openShow(sh: Show) {
       (val) => {
         activeShowEpisode = parseInt(val) || 1;
         setLoading(true);
-        f.src = playUrl(settings.server);
+        f.src = cloakedPlayUrl(settings.server);
       },
       true,
     );
@@ -51376,7 +51373,7 @@ async function openShow(sh: Show) {
       activeShowEpisode = 1;
       replaceEpisodeSel(activeShowSeason);
       setLoading(true);
-      f.src = playUrl(settings.server);
+      f.src = cloakedPlayUrl(settings.server);
     },
     true,
   );
