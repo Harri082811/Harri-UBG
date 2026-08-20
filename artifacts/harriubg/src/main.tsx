@@ -58,7 +58,7 @@ const DEFAULT_SETTINGS: Settings = {
   cloakIcon: "",
   aboutBlank: false,
   autoplay: true,
-  server: "videasy",
+  server: "multiembed",
   showStars: true,
   showBlobs: true,
   showShootingStars: true,
@@ -50349,7 +50349,7 @@ function _rawEmbedUrl(movieId: number, server: string): string {
 }
 
 function buildEmbedUrl(movieId: number, server: string): string {
-  return "/api/proxy?url=" + encodeURIComponent(_rawEmbedUrl(movieId, server));
+  return _rawEmbedUrl(movieId, server);
 }
 
 function _rawShowEmbedUrl(
@@ -50378,7 +50378,7 @@ function buildShowEmbedUrl(
   episode: number,
   server: string,
 ): string {
-  return "/api/proxy?url=" + encodeURIComponent(_rawShowEmbedUrl(showId, season, episode, server));
+  return _rawShowEmbedUrl(showId, season, episode, server);
 }
 
 /* ----- blob-URL cloaking ----------
@@ -51172,17 +51172,8 @@ function openGame(g: Game) {
   openModal();
 
   const f = document.getElementById("modal-frame") as HTMLIFrameElement;
-  f.src = "about:blank";
-
-  if (settings.aboutBlank) {
-    openInAboutBlank(g.url, g.name);
-    closeModal();
-    return;
-  }
-
-  const blobUrl = cloakGameHtml(g);
   f.onload = () => setLoading(false);
-  f.src = blobUrl;
+  f.src = g.url;
 }
 
 function openMovie(m: Movie) {
@@ -51198,15 +51189,10 @@ function openMovie(m: Movie) {
 
   const realUrl = buildEmbedUrl(m.id, settings.server);
 
-  if (settings.aboutBlank) {
-    openInAboutBlank(realUrl, m.title);
-    return;
-  }
-
   openModal();
   const f = document.getElementById("modal-frame") as HTMLIFrameElement;
   f.onload = () => setLoading(false);
-  f.src = cloakUrl(realUrl, m.title);
+  f.src = realUrl;
 
   const sr = document.getElementById("server-row")!;
   sr.innerHTML = "";
@@ -51221,7 +51207,7 @@ function openMovie(m: Movie) {
       b.classList.add("active");
       setLoading(true);
       const newUrl = buildEmbedUrl(m.id, s.id);
-      f.src = cloakUrl(newUrl, m.title);
+      f.src = newUrl;
     });
     sr.appendChild(b);
   });
@@ -51242,18 +51228,10 @@ async function openShow(sh: Show) {
 
   const rawPlayUrl = (server: string) =>
     buildShowEmbedUrl(sh.id, activeShowSeason, activeShowEpisode, server);
-  const cloakedPlayUrl = (server: string) =>
-    cloakUrl(rawPlayUrl(server), sh.title);
 
   const f = document.getElementById("modal-frame") as HTMLIFrameElement;
   f.onload = () => setLoading(false);
-
-  if (settings.aboutBlank) {
-    openInAboutBlank(rawPlayUrl(settings.server), sh.title);
-    closeModal();
-    return;
-  }
-  f.src = cloakedPlayUrl(settings.server);
+  f.src = rawPlayUrl(settings.server);
 
   // Build server picker (same as movies).
   const sr = document.getElementById("server-row")!;
@@ -51268,7 +51246,7 @@ async function openShow(sh: Show) {
       );
       b.classList.add("active");
       setLoading(true);
-      f.src = cloakedPlayUrl(s.id);
+      f.src = rawPlayUrl(s.id);
     });
     sr.appendChild(b);
   });
@@ -51296,7 +51274,7 @@ async function openShow(sh: Show) {
         (v) => {
           activeShowSeason = parseInt(v) || 1;
           setLoading(true);
-          f.src = cloakedPlayUrl(settings.server);
+          f.src = rawPlayUrl(settings.server);
         },
         true,
       ),
@@ -51308,7 +51286,7 @@ async function openShow(sh: Show) {
         (v) => {
           activeShowEpisode = parseInt(v) || 1;
           setLoading(true);
-          f.src = cloakedPlayUrl(settings.server);
+          f.src = rawPlayUrl(settings.server);
         },
         true,
       ),
@@ -51337,7 +51315,7 @@ async function openShow(sh: Show) {
           activeShowSeason = resolved.season;
           activeShowEpisode = resolved.episode;
           setLoading(true);
-          f.src = cloakedPlayUrl(settings.server);
+          f.src = rawPlayUrl(settings.server);
         },
         true,
       ),
@@ -51368,7 +51346,7 @@ async function openShow(sh: Show) {
       (val) => {
         activeShowEpisode = parseInt(val) || 1;
         setLoading(true);
-        f.src = cloakedPlayUrl(settings.server);
+        f.src = rawPlayUrl(settings.server);
       },
       true,
     );
@@ -51386,7 +51364,7 @@ async function openShow(sh: Show) {
       activeShowEpisode = 1;
       replaceEpisodeSel(activeShowSeason);
       setLoading(true);
-      f.src = cloakedPlayUrl(settings.server);
+      f.src = rawPlayUrl(settings.server);
     },
     true,
   );
@@ -51614,20 +51592,14 @@ function bindSettings() {
       saveSettings(settings);
       if (activeMovie) {
         const f = document.getElementById("modal-frame") as HTMLIFrameElement;
-        f.src = cloakUrl(
-          buildEmbedUrl(activeMovie.id, settings.server),
-          activeMovie.title,
-        );
+        f.src = buildEmbedUrl(activeMovie.id, settings.server);
       } else if (activeShow) {
         const f = document.getElementById("modal-frame") as HTMLIFrameElement;
-        f.src = cloakUrl(
-          buildShowEmbedUrl(
-            activeShow.id,
-            activeShowSeason,
-            activeShowEpisode,
-            settings.server,
-          ),
-          activeShow.title,
+        f.src = buildShowEmbedUrl(
+          activeShow.id,
+          activeShowSeason,
+          activeShowEpisode,
+          settings.server,
         );
       }
       const opt = SERVER_OPTIONS.find((o) => o.value === val);
