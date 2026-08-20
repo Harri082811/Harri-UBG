@@ -50333,29 +50333,43 @@ async function fetchShowDetails(showId: number): Promise<ShowDetails | null> {
    Embed URL builders (cineby uses similar providers under the hood)
    ============================================================ */
 
-function proxyUrl(url: string): string {
-  return `/api/proxy?url=${encodeURIComponent(url)}`;
+function _rawEmbedUrl(movieId: number, server: string): string {
+  switch (server) {
+    case "multiembed":
+      return `https://multiembed.mov/?video_id=${movieId}&tmdb=1`;
+    case "videasy":
+      return `https://player.videasy.net/movie/${movieId}`;
+    case "vidlink.pro":
+      return `https://vidlink.pro/movie/${movieId}?primaryColor=22d3ee&secondaryColor=a78bfa&iconColor=ffffff&autoplay=false`;
+    case "2embed.cc":
+      return `https://www.2embed.cc/embed/${movieId}`;
+    default:
+      return `https://multiembed.mov/?video_id=${movieId}&tmdb=1`;
+  }
 }
 
 function buildEmbedUrl(movieId: number, server: string): string {
-  let raw: string;
+  return "/api/proxy?url=" + encodeURIComponent(_rawEmbedUrl(movieId, server));
+}
+
+function _rawShowEmbedUrl(
+  showId: number,
+  season: number,
+  episode: number,
+  server: string,
+): string {
   switch (server) {
     case "multiembed":
-      raw = `https://multiembed.mov/?video_id=${movieId}&tmdb=1`;
-      break;
+      return `https://multiembed.mov/?video_id=${showId}&tmdb=1&s=${season}&e=${episode}`;
     case "videasy":
-      raw = `https://player.videasy.net/movie/${movieId}`;
-      break;
+      return `https://player.videasy.net/tv/${showId}/${season}/${episode}`;
     case "vidlink.pro":
-      raw = `https://vidlink.pro/movie/${movieId}?primaryColor=22d3ee&secondaryColor=a78bfa&iconColor=ffffff&autoplay=false`;
-      break;
+      return `https://vidlink.pro/tv/${showId}/${season}/${episode}?primaryColor=22d3ee&secondaryColor=a78bfa&iconColor=ffffff&autoplay=false`;
     case "2embed.cc":
-      raw = `https://www.2embed.cc/embed/${movieId}`;
-      break;
+      return `https://www.2embed.cc/embedtv/${showId}&s=${season}&e=${episode}`;
     default:
-      raw = `https://multiembed.mov/?video_id=${movieId}&tmdb=1`;
+      return `https://multiembed.mov/?video_id=${showId}&tmdb=1&s=${season}&e=${episode}`;
   }
-  return proxyUrl(raw);
 }
 
 function buildShowEmbedUrl(
@@ -50364,24 +50378,7 @@ function buildShowEmbedUrl(
   episode: number,
   server: string,
 ): string {
-  let raw: string;
-  switch (server) {
-    case "multiembed":
-      raw = `https://multiembed.mov/?video_id=${showId}&tmdb=1&s=${season}&e=${episode}`;
-      break;
-    case "videasy":
-      raw = `https://player.videasy.net/tv/${showId}/${season}/${episode}`;
-      break;
-    case "vidlink.pro":
-      raw = `https://vidlink.pro/tv/${showId}/${season}/${episode}?primaryColor=22d3ee&secondaryColor=a78bfa&iconColor=ffffff&autoplay=false`;
-      break;
-    case "2embed.cc":
-      raw = `https://www.2embed.cc/embedtv/${showId}&s=${season}&e=${episode}`;
-      break;
-    default:
-      raw = `https://multiembed.mov/?video_id=${showId}&tmdb=1&s=${season}&e=${episode}`;
-  }
-  return proxyUrl(raw);
+  return "/api/proxy?url=" + encodeURIComponent(_rawShowEmbedUrl(showId, season, episode, server));
 }
 
 /* ----- blob-URL cloaking ----------
