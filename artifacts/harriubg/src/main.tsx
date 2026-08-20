@@ -58,7 +58,7 @@ const DEFAULT_SETTINGS: Settings = {
   cloakIcon: "",
   aboutBlank: false,
   autoplay: true,
-  server: "multiembed",
+  server: "videasy",
   showStars: true,
   showBlobs: true,
   showShootingStars: true,

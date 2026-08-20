@@ -11,7 +11,7 @@ module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   if (req.method === "OPTIONS") return res.status(204).end();
 
-  let target = req.query.url;
+  const target = req.query.url;
   if (!target) return res.status(400).json({ error: "Missing ?url=" });
 
   let parsed;
@@ -24,6 +24,7 @@ module.exports = async (req, res) => {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         Referer: parsed.origin + "/",
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
       },
       redirect: "follow",
     });
@@ -33,8 +34,7 @@ module.exports = async (req, res) => {
 
     if (ct.includes("text/html")) {
       let html = await upstream.text();
-      const base = (req.headers["x-forwarded-proto"] || "https") + "://" + req.headers.host;
-      const proxy = base + "/api/proxy?url=";
+      const proxy = "/api/proxy?url=";
 
       const rewriteUrl = (url) => {
         try {
@@ -56,22 +56,6 @@ module.exports = async (req, res) => {
         (m, pre, url, post) => {
           if (url.startsWith("data:")) return m;
           return pre + rewriteUrl(url) + post;
-        });
-
-      html = html.replace(/(window\.location\s*=\s*["'])([^"']+)(["'])/gi,
-        (m, pre, url, post) => pre + rewriteUrl(url) + post);
-
-      html = html.replace(/(window\.open\s*\(\s*["'])([^"']+)(["'])/gi,
-        (m, pre, url, post) => pre + rewriteUrl(url) + post);
-
-      html = html.replace(
-        /(?<![\w.])((?:fetch|XMLHttpRequest|axios|\.get|\.post|\.open)\s*\(\s*["'])(https?:\/\/[^"']+)/gi,
-        (m, pre, url) => {
-          try {
-            const u = new URL(url);
-            if (ALLOWED_HOSTS.includes(u.hostname)) return pre + proxy + encodeURIComponent(url);
-          } catch {}
-          return m;
         });
 
       html = html.replace(/(<head[^>]*>)/i, "$1\n<base href=\"" + parsed.origin + "/\">");
