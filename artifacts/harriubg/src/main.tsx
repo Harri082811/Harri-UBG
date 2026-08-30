@@ -58,7 +58,7 @@ const DEFAULT_SETTINGS: Settings = {
   cloakIcon: "",
   aboutBlank: false,
   autoplay: true,
-  server: "multiembed",
+  server: "vidlink.pro",
   showStars: true,
   showBlobs: true,
   showShootingStars: true,
@@ -50423,9 +50423,9 @@ function cloakGameHtml(g: Game): string {
 }
 
 const SERVERS: Array<{ id: string; label: string }> = [
-  { id: "multiembed", label: "Server 1" },
-  { id: "videasy", label: "Server 2" },
-  { id: "vidlink.pro", label: "Server 3" },
+  { id: "vidlink.pro", label: "Server 1" },
+  { id: "multiembed", label: "Server 2" },
+  { id: "videasy", label: "Server 3" },
   { id: "2embed.cc", label: "Server 4" },
 ];
 
@@ -51172,6 +51172,7 @@ function openGame(g: Game) {
   openModal();
 
   const f = document.getElementById("modal-frame") as HTMLIFrameElement;
+  f.setAttribute("referrerpolicy", "no-referrer");
   f.onload = () => setLoading(false);
   f.src = g.url;
 }
@@ -51191,6 +51192,7 @@ function openMovie(m: Movie) {
 
   openModal();
   const f = document.getElementById("modal-frame") as HTMLIFrameElement;
+  f.setAttribute("referrerpolicy", "no-referrer");
   f.onload = () => setLoading(false);
   f.src = realUrl;
 
@@ -51230,6 +51232,7 @@ async function openShow(sh: Show) {
     buildShowEmbedUrl(sh.id, activeShowSeason, activeShowEpisode, server);
 
   const f = document.getElementById("modal-frame") as HTMLIFrameElement;
+  f.setAttribute("referrerpolicy", "no-referrer");
   f.onload = () => setLoading(false);
   f.src = rawPlayUrl(settings.server);
 
@@ -51540,9 +51543,9 @@ const CLOAK_ICON_OPTIONS = [
 ];
 
 const SERVER_OPTIONS = [
-  { value: "multiembed", label: "Server 1" },
-  { value: "videasy", label: "Server 2" },
-  { value: "vidlink.pro", label: "Server 3" },
+  { value: "vidlink.pro", label: "Server 1" },
+  { value: "multiembed", label: "Server 2" },
+  { value: "videasy", label: "Server 3" },
   { value: "2embed.cc", label: "Server 4" },
 ];
 
